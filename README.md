@@ -114,4 +114,6 @@ See [format reference](docs/format.md), [decisions](docs/decisions.md).
 - YAML is a new versioned format, not Mermaid or WireViz compatibility. Unknown fields are rejected; use `properties` for component metadata.
 - Modern browsers with ES modules are required; 3D needs WebGL2. The SVG view works without WebGL. Tests mock GPU initialization; actual 3D appearance and browser interaction remain unverified after the user's request to stop browser checks.
 - SVG uses embedded styles and the widget uses inline positioning/styles; restrictive CSP configurations need an explicit integration review. Serve user-supplied YAML only within appropriate size/resource limits and trust boundaries.
-- No license has been selected for distribution yet. Set project licensing before public release.
+
+## License
+MIT
