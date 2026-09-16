@@ -1,6 +1,6 @@
 # Wire Diagram
 
-A framework-independent TypeScript library that turns a YAML wiring document into an interactive **SVG schematic + Three.js canvas**, with component details and a bill of materials. One validated pin-level graph drives both views.
+A framework-independent TypeScript library that turns a YAML wiring document into an interactive **SVG schematic + Three.js canvas**, with a compact inspector for selected parts. One validated pin-level graph drives both views. `getBom` remains available from the API.
 
 ## Run the demo
 
@@ -95,7 +95,7 @@ See [format reference](docs/format.md), [decisions](docs/decisions.md), and [Gra
 - SVG component boxes, explicit contacts, groups, colored/dashed wires, pan/zoom, keyboard selection, SVG export.
 - Orbit/zoom 3D with wire hover/picking, component labels, pin markers, optional external GLB/glTF models, lazy loading and cleanup.
 - Illustrative built-in ESP32, HX711, load-cell, probe, resistor, power and generic board models.
-- Shared inspector, keyboard-accessible selection list, assembly notes, quantities and purchase links.
+- Shared inspector, keyboard-accessible selection list and purchase links.
 - Multiple independent instances and explicit `update` / `destroy` lifecycle.
 
 ## Accuracy and current limitations

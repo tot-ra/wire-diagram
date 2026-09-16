@@ -14,6 +14,15 @@ describe('widget integration', () => {
     expect(host.querySelector('.wd-inspector h3')!.textContent).toBe('A');
     widget.destroy(); expect(host.children).toHaveLength(0);
   });
+  it('does not render assembly notes or a bill of materials in the widget chrome', () => {
+    const host = document.createElement('div');
+    const widget = createWiringDiagram(host, source);
+    expect(host.querySelector('.wd-notes')).toBeNull();
+    expect(host.querySelector('.wd-bom')).toBeNull();
+    expect(host.querySelector('.wd-hint')).toBeNull();
+    expect(host.textContent).not.toContain('BUILD WITH CONFIDENCE');
+    widget.destroy();
+  });
   it('retains a working diagram on invalid update and replaces valid updates', () => {
     const host = document.createElement('div'); const widget = createWiringDiagram(host, source);
     expect(() => widget.update('version: 99')).toThrow();

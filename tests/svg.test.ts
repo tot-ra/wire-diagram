@@ -113,4 +113,92 @@ describe('createSVGView', () => {
     view.destroy();
     expect(host.childNodes.length).toBe(0);
   });
+
+  it('zooms toward the cursor instead of the viewBox origin', () => {
+    const host = document.createElement('div');
+    const view = createSVGView(host, sample, {
+      onSelect() {},
+      onHover() {},
+    });
+    const svg = host.querySelector('svg') as SVGSVGElement;
+    const viewport = svg.parentElement as HTMLElement;
+    mockSvgLayout(svg, { left: 80, top: 40, width: 900, height: 500 });
+
+    const cursor = { clientX: 620, clientY: 310 };
+    const before = readContentTransform(svg);
+    const point = svgUserPoint(svg, cursor);
+    expect(point.x).not.toBeCloseTo(svg.viewBox.baseVal.x);
+    expect(point.y).not.toBeCloseTo(svg.viewBox.baseVal.y);
+
+    viewport.dispatchEvent(wheelAt(cursor, -120));
+
+    const after = readContentTransform(svg);
+    expect(after.scale).toBeCloseTo(before.scale * 1.1);
+    expect(worldPoint(point, after)).toEqual({
+      x: expect.closeTo(worldPoint(point, before).x),
+      y: expect.closeTo(worldPoint(point, before).y),
+    });
+    expect(after.panX).not.toBeCloseTo(before.panX);
+    expect(after.panY).not.toBeCloseTo(before.panY);
+
+    view.destroy();
+  });
 });
+
+function mockSvgLayout(
+  svg: SVGSVGElement,
+  rect: { left: number; top: number; width: number; height: number },
+): void {
+  svg.getBoundingClientRect = () =>
+    ({
+      ...rect,
+      right: rect.left + rect.width,
+      bottom: rect.top + rect.height,
+      x: rect.left,
+      y: rect.top,
+      toJSON() {
+        return this;
+      },
+    }) as DOMRect;
+}
+
+function svgUserPoint(
+  svg: SVGSVGElement,
+  cursor: { clientX: number; clientY: number },
+): { x: number; y: number } {
+  const rect = svg.getBoundingClientRect();
+  const bounds = svg.viewBox.baseVal;
+  const meet = Math.min(rect.width / bounds.width, rect.height / bounds.height);
+  const offsetX = (rect.width - bounds.width * meet) / 2;
+  const offsetY = (rect.height - bounds.height * meet) / 2;
+  return {
+    x: bounds.x + (cursor.clientX - rect.left - offsetX) / meet,
+    y: bounds.y + (cursor.clientY - rect.top - offsetY) / meet,
+  };
+}
+
+function readContentTransform(svg: SVGSVGElement): { panX: number; panY: number; scale: number } {
+  const value = svg.querySelector(':scope > g')?.getAttribute('transform') ?? '';
+  const match = /translate\(([-\d.eE]+)[ ,]([-\d.eE]+)\) scale\(([-\d.eE]+)\)/.exec(value);
+  if (!match) throw new Error(`Unexpected transform: ${value}`);
+  return { panX: Number(match[1]), panY: Number(match[2]), scale: Number(match[3]) };
+}
+
+function worldPoint(
+  cursor: { x: number; y: number },
+  transform: { panX: number; panY: number; scale: number },
+): { x: number; y: number } {
+  return {
+    x: (cursor.x - transform.panX) / transform.scale,
+    y: (cursor.y - transform.panY) / transform.scale,
+  };
+}
+
+function wheelAt(cursor: { clientX: number; clientY: number }, deltaY: number): WheelEvent {
+  return new WheelEvent('wheel', {
+    ...cursor,
+    deltaY,
+    bubbles: true,
+    cancelable: true,
+  });
+}

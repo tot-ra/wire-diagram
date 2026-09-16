@@ -33,7 +33,7 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 | `purchase` | none | `{url, label?, partNumber?}`; http(s) only |
 | `model` | none | External model descriptor below |
 
-Pins require `id`. Optional fields: `label`, `side` (`left` by default or `right`), `position` (local `[x,y,z]` in mm), `voltage` (nominal metadata). Pin ordering follows document order on each side. When omitted, physical anchors are placed at the left/right body edge and spread over depth; these defaults are not verified hardware pinouts.
+Pins require `id`. Optional fields: `label`, `side` (`left` by default or `right`), `position` (local `[x,y,z]` in mm), `voltage` (nominal metadata). Pin ordering follows document order on each side. When omitted, physical anchors are placed at the left/right body edge and spread over depth, except `kind: esp32`, which defaults to a 19-pin 2.54 mm dual header on the long edges (schematic left -> +Z, right -> -Z). These defaults are not verified hardware pinouts.
 
 ## Wires and junctions
 

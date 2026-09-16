@@ -3,9 +3,17 @@ import { describe, expect, it, vi, beforeAll, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { parseDiagram } from '../src/parser.js';
 import {
+  buildEsp32,
+  buildLoadCell,
+  buildPowerBlock,
   buildProbe,
   buildResistor,
   create3DView,
+  ESP32_HEADER_PIN_COUNT,
+  esp32HeaderPinX,
+  esp32HeaderRowZ,
+  esp32PinTipY,
+  localPinPosition,
   matchesResistance,
   parseEndpoint,
 } from '../src/view3d.js';
@@ -163,6 +171,121 @@ describe('view3d helpers', () => {
     const neutral = buildResistor(THREE, { ...base, properties: { resistance: '1 kΩ' } });
     expect(neutral.meshes.filter((mesh) => mesh.name.startsWith('resistor-band-'))).toHaveLength(0);
   });
+
+  it('builds a bar load cell with end blocks, mounting holes and a strain-gauge pocket', () => {
+    const component = {
+      id: 'load',
+      label: 'Load cell · 20 kg',
+      kind: 'load-cell' as const,
+      dimensions: [75, 13, 13] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildLoadCell(THREE, component);
+    expect(meshes.find((mesh) => mesh.name === 'load-cell-end-neg')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'load-cell-end-pos')).toBeTruthy();
+    expect(meshes.filter((mesh) => mesh.name === 'load-cell-hole')).toHaveLength(2);
+    expect(meshes.find((mesh) => mesh.name === 'load-cell-flange-top')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'load-cell-web')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'load-cell-gauge')).toBeTruthy();
+
+    const left = meshes.find((mesh) => mesh.name === 'load-cell-end-neg')!;
+    const right = meshes.find((mesh) => mesh.name === 'load-cell-end-pos')!;
+    expect(left.position.x).toBeLessThan(0);
+    expect(right.position.x).toBeGreaterThan(0);
+    expect(left.geometry).toBeInstanceOf(THREE.BoxGeometry);
+    const endGeom = left.geometry as THREE.BoxGeometry;
+    expect(endGeom.parameters.height).toBeCloseTo(13);
+    expect(endGeom.parameters.depth).toBeCloseTo(13);
+  });
+
+  it('builds a USB supply whose blue badge does not share the housing top plane', () => {
+    const component = {
+      id: 'usb',
+      label: 'USB 5 V supply',
+      kind: 'power' as const,
+      dimensions: [28, 14, 22] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildPowerBlock(THREE, component);
+    const housing = meshes.find((mesh) => mesh.name === 'power-housing');
+    const accent = meshes.find((mesh) => mesh.name === 'power-accent');
+    expect(housing).toBeTruthy();
+    expect(accent).toBeTruthy();
+    expect(accent!.receiveShadow).toBe(false);
+
+    const housingGeom = housing!.geometry as THREE.BoxGeometry;
+    const accentGeom = accent!.geometry as THREE.BoxGeometry;
+    const housingTop = housing!.position.y + housingGeom.parameters.height / 2;
+    const accentBottom = accent!.position.y - accentGeom.parameters.height / 2;
+    const accentTop = accent!.position.y + accentGeom.parameters.height / 2;
+
+    expect(accentTop).toBeGreaterThan(housingTop);
+    expect(accentBottom).toBeLessThan(housingTop);
+    expect(accentTop).not.toBeCloseTo(housingTop, 5);
+  });
+
+  it('places ESP32 default pin anchors on the long-edge header grid', () => {
+    const component = {
+      id: 'esp',
+      label: 'ESP32',
+      kind: 'esp32' as const,
+      dimensions: [52, 3, 28] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [
+        { id: 'gnd', side: 'left' as const },
+        { id: 'out', side: 'right' as const },
+      ],
+    };
+
+    const gnd = localPinPosition(component, component.pins[0]);
+    const out = localPinPosition(component, component.pins[1]);
+    expect(gnd[0]).toBeCloseTo(esp32HeaderPinX(0));
+    expect(gnd[1]).toBeCloseTo(esp32PinTipY());
+    expect(gnd[2]).toBeCloseTo(esp32HeaderRowZ(28, 'left'));
+    expect(out[2]).toBeCloseTo(esp32HeaderRowZ(28, 'right'));
+    expect(Math.abs(gnd[0])).toBeLessThan(component.dimensions[0] / 2);
+  });
+
+  it('builds ESP32 dual headers whose named pins match wire anchors', () => {
+    const component = {
+      id: 'esp',
+      label: 'ESP32 DevKit',
+      kind: 'esp32' as const,
+      dimensions: [52, 3, 28] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [
+        { id: 'VIN', side: 'left' as const, position: [-22.86, 10.2, 12.73] as [number, number, number] },
+        { id: 'GND', side: 'left' as const, position: [-20.32, 10.2, 12.73] as [number, number, number] },
+        { id: '3V3', side: 'right' as const, position: [-22.86, 10.2, -12.73] as [number, number, number] },
+        { id: 'IO4', side: 'right' as const, position: [-10.16, 10.2, -12.73] as [number, number, number] },
+      ],
+    };
+
+    const { meshes } = buildEsp32(THREE, component);
+    const pinMeshes = meshes.filter((mesh) => mesh.name.startsWith('esp32-header-pin:'));
+    expect(pinMeshes).toHaveLength(ESP32_HEADER_PIN_COUNT * 2);
+    expect(meshes.find((mesh) => mesh.name === 'esp32-header-housing:left')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'esp32-header-housing:right')).toBeTruthy();
+
+    for (const pin of component.pins) {
+      const mesh = meshes.find((entry) => entry.name === `esp32-header-pin:${pin.id}`);
+      expect(mesh, `missing header pin mesh for ${pin.id}`).toBeTruthy();
+      const local = localPinPosition(component, pin);
+      expect(mesh!.position.x).toBeCloseTo(local[0], 5);
+      expect(mesh!.position.z).toBeCloseTo(local[2], 5);
+      expect(mesh!.geometry).toBeInstanceOf(THREE.BoxGeometry);
+      const geom = mesh!.geometry as THREE.BoxGeometry;
+      expect(geom.parameters.width).toBeCloseTo(0.64);
+      const tipY = mesh!.position.y + geom.parameters.height / 2;
+      expect(tipY).toBeCloseTo(local[1], 5);
+    }
+  });
 });
 
 describe('create3DView', () => {
@@ -276,5 +399,14 @@ describe('create3DView', () => {
 
     failingRenderer.mockRestore();
     threeModule.WebGLRenderer = WebGLRenderer;
+  });
+
+  it('reset before initialization does not throw', () => {
+    const host = document.createElement('div');
+    Object.defineProperty(host, 'clientWidth', { value: 640, configurable: true });
+    Object.defineProperty(host, 'clientHeight', { value: 480, configurable: true });
+    const view = create3DView(host, sample, { onSelect: () => {}, onHover: () => {} });
+    expect(() => view.reset()).not.toThrow();
+    view.destroy();
   });
 });

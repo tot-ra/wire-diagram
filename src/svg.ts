@@ -432,6 +432,24 @@ export function renderSVG(diagram: Diagram): string {
   return buildSvgMarkup(diagram, false);
 }
 
+/** Map a pointer into SVG viewBox space, matching default xMidYMid meet. */
+function svgPointFromClient(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+): { x: number; y: number } | null {
+  const rect = svg.getBoundingClientRect();
+  const bounds = svg.viewBox.baseVal;
+  if (rect.width <= 0 || rect.height <= 0 || bounds.width <= 0 || bounds.height <= 0) return null;
+  const meet = Math.min(rect.width / bounds.width, rect.height / bounds.height);
+  const offsetX = (rect.width - bounds.width * meet) / 2;
+  const offsetY = (rect.height - bounds.height * meet) / 2;
+  return {
+    x: bounds.x + (clientX - rect.left - offsetX) / meet,
+    y: bounds.y + (clientY - rect.top - offsetY) / meet,
+  };
+}
+
 export function createSVGView(host: HTMLElement, diagram: Diagram, callbacks: ViewCallbacks): ViewHandle {
   host.innerHTML = buildSvgMarkup(diagram, true);
 
@@ -542,8 +560,17 @@ export function createSVGView(host: HTMLElement, diagram: Diagram, callbacks: Vi
 
   const onWheel = (event: WheelEvent): void => {
     event.preventDefault();
-    const delta = event.deltaY > 0 ? 0.9 : 1.1;
-    scale = Math.min(4, Math.max(0.35, scale * delta));
+    const nextScale = Math.min(4, Math.max(0.35, scale * (event.deltaY > 0 ? 0.9 : 1.1)));
+    if (nextScale === scale) return;
+    // Scale around the pointer so the diagram point under the cursor stays put.
+    if (svg) {
+      const cursor = svgPointFromClient(svg, event.clientX, event.clientY);
+      if (cursor) {
+        panX = cursor.x - ((cursor.x - panX) / scale) * nextScale;
+        panY = cursor.y - ((cursor.y - panY) / scale) * nextScale;
+      }
+    }
+    scale = nextScale;
     applyTransform();
   };
 

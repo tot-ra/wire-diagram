@@ -34,12 +34,11 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
   const toolbar = element('header', 'wd-toolbar');
   const heading = element('div', 'wd-heading');
   const title = element('h2');
-  const subtitle = element('p');
-  heading.append(title, subtitle);
+  heading.append(title);
   const controls = element('div', 'wd-controls');
   const b2d = element('button', '', 'Schematic');
-  const b3d = element('button', '', '3D assembly');
-  const reset = element('button', '', 'Reset view');
+  const b3d = element('button', '', '3D');
+  const reset = element('button', '', 'Reset');
   const exportButton = element('button', '', 'Export SVG');
   for (const b of [b2d, b3d, reset, exportButton]) b.type = 'button';
   controls.append(b2d, b3d, reset, exportButton);
@@ -47,18 +46,16 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
   const body = element('div', 'wd-body');
   const viewport = element('div', 'wd-viewport');
   const stage = element('div', 'wd-stage');
-  const hint = element('div', 'wd-hint');
   const tooltip = element('div', 'wd-tooltip');
   tooltip.hidden = true;
-  viewport.append(stage, hint, tooltip);
+  viewport.append(stage, tooltip);
   const inspector = element('aside', 'wd-inspector');
   inspector.setAttribute('aria-label', 'Connection inspector');
   inspector.setAttribute('aria-live', 'polite');
   body.append(viewport, inspector);
   const status = element('p', 'wd-status');
   status.setAttribute('role', 'status');
-  const lower = element('div', 'wd-lower');
-  root.append(toolbar, body, status, lower);
+  root.append(toolbar, body, status);
   host.append(root);
 
   function entityLabel(id: string): string {
@@ -74,14 +71,12 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
     inspector.append(row);
   }
   function inspect() {
-    inspector.replaceChildren(element('span', 'wd-eyebrow', selected ? 'INSPECT CONNECTION' : 'BUILD WITH CONFIDENCE'));
+    inspector.replaceChildren();
     const c = diagram.components.find(c => c.id === selected);
     const w = diagram.wires.find(w => w.id === selected);
     if (c) {
       inspector.append(element('h3', '', c.label));
-      detail('Component', c.id);
-      detail('Body size', `${c.dimensions.join(' × ')} mm`);
-      detail('Model', c.model ? 'External glTF / GLB' : `${c.kind} · illustrative`);
+      detail('Size', `${c.dimensions.join(' × ')} mm`);
       if (c.notes) inspector.append(element('p', '', c.notes));
       for (const [key, value] of Object.entries(c.properties ?? {})) detail(key, value);
       inspector.append(element('h4', '', 'Contacts'));
@@ -94,16 +89,10 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
     } else if (w) {
       inspector.append(element('h3', '', w.label || w.id));
       const swatch = element('div', 'wd-swatch'); swatch.style.backgroundColor = w.color; inspector.append(swatch);
-      detail('From', w.from); detail('To', w.to); detail('Net', w.net);
+      detail('From', w.from); detail('To', w.to);
       detail('Voltage', w.voltage === undefined ? undefined : `${w.voltage} V`);
-      detail('Cut length', w.lengthMm === undefined ? undefined : `${w.lengthMm} mm`);
-      detail('Outer diameter', w.diameterMm === undefined ? undefined : `${w.diameterMm} mm`);
-      detail('Wire gauge', w.gaugeAwg === undefined ? undefined : `${w.gaugeAwg} AWG`);
+      detail('Length', w.lengthMm === undefined ? undefined : `${w.lengthMm} mm`);
       if (w.notes) inspector.append(element('p', '', w.notes));
-    } else {
-      inspector.append(element('h3', '', 'One circuit. Two perspectives.'), element('p', '', 'Select a component or wire to see its exact contacts, specifications and sourcing information. The same connections are used in both views.'));
-      detail('Components', diagram.components.length); detail('Connections', diagram.wires.length);
-      inspector.append(element('p', 'wd-caution', 'Verify the pinout and voltage levels of your actual hardware before connecting power. 3D models are illustrative.'));
     }
     const select = element('select', 'wd-select');
     select.setAttribute('aria-label', 'Select component or wire');
@@ -115,34 +104,12 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
   }
   function renderMetadata() {
     title.textContent = diagram.title;
-    subtitle.textContent = diagram.description || 'A shared source for schematic and physical wiring';
-    lower.replaceChildren();
-    const notes = element('div', 'wd-notes');
-    notes.append(element('h3', '', 'Assembly notes'));
-    const list = element('ul');
-    for (const note of [...diagram.notes, ...diagram.groups.flatMap(g => g.notes ? [`${g.label}: ${g.notes}`] : [])]) list.append(element('li', '', note));
-    notes.append(list);
-    const bom = element('details', 'wd-bom');
-    bom.append(element('summary', '', `Bill of materials · ${diagram.components.reduce((n, c) => n + c.quantity, 0)} parts`));
-    const table = element('table');
-    const head = element('tr');
-    for (const label of ['Component', 'Qty', 'Part / source']) head.append(element('th', '', label));
-    table.append(head);
-    for (const c of diagram.components) {
-      const row = element('tr'); const sourceCell = element('td');
-      if (c.purchase) {
-        const link = element('a', '', c.purchase.partNumber || c.purchase.label || 'Supplier ↗');
-        link.href = c.purchase.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; sourceCell.append(link);
-      } else sourceCell.textContent = 'Not specified';
-      row.append(element('td', '', c.label), element('td', '', String(c.quantity)), sourceCell); table.append(row);
-    }
-    bom.append(table, element('p', '', 'Supplier links are author-provided, not endorsements. Wires, connectors and tools may need to be ordered separately.'));
-    lower.append(notes, bom); inspect();
+    inspect();
   }
   const callbacks = {
     onSelect: (id: string | null) => api.select(id),
     onHover: (id: string | null) => { tooltip.hidden = !id; tooltip.textContent = id ? entityLabel(id) : ''; },
-    onError: (message: string) => { if (!disposed) status.textContent = `${message} You can return to the schematic.`; },
+    onError: (message: string) => { if (!disposed) status.textContent = message; },
   };
   async function setView(mode: '2d' | '3d') {
     if (disposed) return;
@@ -151,8 +118,7 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
     currentView = mode;
     view?.destroy(); view = undefined; stage.replaceChildren(); tooltip.hidden = true;
     b2d.setAttribute('aria-pressed', String(mode === '2d')); b3d.setAttribute('aria-pressed', String(mode === '3d'));
-    hint.textContent = mode === '2d' ? 'Drag to pan · scroll to zoom · select a connection' : 'Drag to orbit · scroll to zoom · select a wire';
-    status.textContent = mode === '3d' ? 'Illustrative models. Pin anchors and dimensions must be verified for your board variant.' : '';
+    status.textContent = '';
     if (mode === '2d') view = createSVGView(stage, diagram, callbacks);
     else {
       stage.append(element('p', 'wd-loading', 'Loading 3D assembly…'));

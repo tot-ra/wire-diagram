@@ -32,6 +32,46 @@ const DEFAULT_WIRE_DIAMETER_MM = 1.6;
 const LABEL_HEIGHT_MM = 4;
 const PIN_MARKER_RADIUS_MM = 1.4;
 
+/** Illustrative ESP32-DevKitC dual female header. Real boards vary; authors may override pin.position. */
+export const ESP32_HEADER_PITCH_MM = 2.54;
+export const ESP32_HEADER_PIN_COUNT = 19;
+export const ESP32_PCB_THICKNESS_MM = 1.6;
+export const ESP32_HEADER_HEIGHT_MM = 8.4;
+export const ESP32_HEADER_SINK_MM = 0.2;
+export const ESP32_PIN_PROUD_MM = 1.2;
+export const ESP32_PIN_SIZE_MM = 0.64;
+
+export function esp32HeaderStartX(): number {
+  return -((ESP32_HEADER_PIN_COUNT - 1) * ESP32_HEADER_PITCH_MM) / 2;
+}
+
+export function esp32HeaderPinX(index: number): number {
+  const clamped = Math.max(0, Math.min(ESP32_HEADER_PIN_COUNT - 1, index));
+  return esp32HeaderStartX() + clamped * ESP32_HEADER_PITCH_MM;
+}
+
+export function esp32HeaderSlotIndex(x: number): number {
+  return Math.max(
+    0,
+    Math.min(ESP32_HEADER_PIN_COUNT - 1, Math.round((x - esp32HeaderStartX()) / ESP32_HEADER_PITCH_MM)),
+  );
+}
+
+/** Schematic left maps to the +Z header row, right to -Z, matching the demo DevKit layout. */
+export function esp32HeaderRowZ(depthMm: number, side: 'left' | 'right'): number {
+  const z = depthMm / 2 - ESP32_HEADER_PITCH_MM / 2;
+  return side === 'left' ? z : -z;
+}
+
+export function esp32HeaderHousingTopY(): number {
+  return ESP32_PCB_THICKNESS_MM / 2 - ESP32_HEADER_SINK_MM + ESP32_HEADER_HEIGHT_MM;
+}
+
+/** Wire attaches at the gold pin top, slightly above the plastic so the tube meets metal. */
+export function esp32PinTipY(): number {
+  return esp32HeaderHousingTopY() + ESP32_PIN_PROUD_MM;
+}
+
 export function parseEndpoint(ref: string): EndpointRef | null {
   const dot = ref.lastIndexOf('.');
   if (dot <= 0 || dot === ref.length - 1) return null;
@@ -57,6 +97,14 @@ function resolvePinLocalPosition(
   pinsOnSide: number,
 ): Vec3 {
   if (pin.position) return pin.position;
+  if (component.kind === 'esp32') {
+    // WHY: DevKit headers sit on the long edges (±Z), not the USB/antenna short edges (±X).
+    return [
+      esp32HeaderPinX(pinIndexOnSide),
+      esp32PinTipY(),
+      esp32HeaderRowZ(component.dimensions[2], pin.side),
+    ];
+  }
   const [width, height, depth] = component.dimensions;
   const edgeX = pin.side === 'left' ? -width / 2 : width / 2;
   const slot = pinIndexOnSide + 1;
@@ -64,6 +112,11 @@ function resolvePinLocalPosition(
   const z = depth * (slot / slots - 0.5);
   const y = height * 0.08;
   return [edgeX, y, z];
+}
+
+export function localPinPosition(component: Component, pin: Pin): Vec3 {
+  const { index, count } = pinIndexOnSide(component, pin);
+  return resolvePinLocalPosition(component, pin, index, count);
 }
 
 function resolvePinWorldPosition(
@@ -230,64 +283,101 @@ function buildGenericBoard(
   return { group, meshes };
 }
 
-function buildEsp32(THREE: ThreeModule, component: Component): { group: import('three').Group; meshes: import('three').Mesh[] } {
+function pinSlotKey(side: 'left' | 'right', index: number): string {
+  return `${side}:${index}`;
+}
+
+export function buildEsp32(THREE: ThreeModule, component: Component): { group: import('three').Group; meshes: import('three').Mesh[] } {
   const group = new THREE.Group();
   const meshes: import('three').Mesh[] = [];
-  const [w, h, d] = component.dimensions;
+  const [w, , d] = component.dimensions;
+  const pcbTop = ESP32_PCB_THICKNESS_MM / 2;
+  const housingTop = esp32HeaderHousingTopY();
+  const pinTop = esp32PinTipY();
+  const pinBottom = -pcbTop - 0.5;
+  const pinHeight = pinTop - pinBottom;
+  const pinCenterY = (pinTop + pinBottom) / 2;
 
   const pcb = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(w, h * 0.1, d),
+    new THREE.BoxGeometry(w, ESP32_PCB_THICKNESS_MM, d),
     new THREE.MeshStandardMaterial({ color: '#0f2d1d', roughness: 0.62, metalness: 0.12 }),
   );
+  pcb.name = 'esp32-pcb';
   meshes.push(pcb);
 
+  const shieldH = 3.1;
   const shield = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(w * 0.42, h * 0.16, d * 0.48),
+    new THREE.BoxGeometry(Math.min(w * 0.42, 18), shieldH, Math.min(d * 0.58, 16)),
     new THREE.MeshStandardMaterial({ color: '#b8bcc4', roughness: 0.28, metalness: 0.92 }),
-    [0, h * 0.12, 0],
+    [w * 0.06, pcbTop + shieldH / 2 - ESP32_HEADER_SINK_MM, 0],
   );
+  shield.name = 'esp32-shield';
   meshes.push(shield);
 
+  const usbSize: Vec3 = [7.5, 3.2, 8];
   const usb = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(w * 0.16, h * 0.08, d * 0.22),
+    new THREE.BoxGeometry(usbSize[0], usbSize[1], usbSize[2]),
     new THREE.MeshStandardMaterial({ color: '#c5c8ce', roughness: 0.35, metalness: 0.85 }),
-    [-w * 0.34, h * 0.04, -d * 0.34],
+    [-w / 2 + usbSize[0] / 2, pcbTop + usbSize[1] / 2 - ESP32_HEADER_SINK_MM, 0],
   );
+  usb.name = 'esp32-usb';
   meshes.push(usb);
 
-  const chip = addMesh(
-    THREE,
-    group,
-    new THREE.BoxGeometry(w * 0.18, h * 0.06, d * 0.18),
-    new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.4, metalness: 0.2 }),
-    [w * 0.18, h * 0.08, d * 0.12],
-  );
-  meshes.push(chip);
-
+  const antennaH = 0.3;
   const antenna = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(w * 0.08, h * 0.02, d * 0.55),
+    new THREE.BoxGeometry(w * 0.12, antennaH, d * 0.42),
     new THREE.MeshStandardMaterial({ color: '#d4af37', roughness: 0.45, metalness: 0.75 }),
-    [w * 0.34, h * 0.07, d * 0.05],
+    [w / 2 - w * 0.08, pcbTop + antennaH / 2 - 0.08, 0],
   );
+  antenna.name = 'esp32-antenna';
   meshes.push(antenna);
 
-  for (let i = 0; i < 2; i += 1) {
-    const header = addMesh(
+  const housingLength = ESP32_HEADER_PIN_COUNT * ESP32_HEADER_PITCH_MM;
+  const housingCenterY = pcbTop - ESP32_HEADER_SINK_MM + ESP32_HEADER_HEIGHT_MM / 2;
+  const housingMat = new THREE.MeshStandardMaterial({ color: '#151515', roughness: 0.72, metalness: 0.04 });
+  const pinMat = new THREE.MeshStandardMaterial({ color: '#d7c089', roughness: 0.28, metalness: 0.92 });
+
+  const usedBySlot = new Map<string, Pin>();
+  for (const pin of component.pins) {
+    const local = localPinPosition(component, pin);
+    const index = pin.position ? esp32HeaderSlotIndex(local[0]) : pinIndexOnSide(component, pin).index;
+    usedBySlot.set(pinSlotKey(pin.side, index), pin);
+  }
+
+  for (const side of ['left', 'right'] as const) {
+    const rowZ = esp32HeaderRowZ(d, side);
+    const housing = addMesh(
       THREE,
       group,
-      new THREE.BoxGeometry(w * 0.55, h * 0.12, d * 0.08),
-      new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.7, metalness: 0.05 }),
-      [0, h * 0.1, (i === 0 ? -1 : 1) * d * 0.42],
+      new THREE.BoxGeometry(housingLength, ESP32_HEADER_HEIGHT_MM, ESP32_HEADER_PITCH_MM),
+      housingMat,
+      [0, housingCenterY, rowZ],
     );
-    meshes.push(header);
+    housing.name = `esp32-header-housing:${side}`;
+    meshes.push(housing);
+
+    for (let index = 0; index < ESP32_HEADER_PIN_COUNT; index += 1) {
+      const pinDef = usedBySlot.get(pinSlotKey(side, index));
+      const x = esp32HeaderPinX(index);
+      const pinMesh = addMesh(
+        THREE,
+        group,
+        new THREE.BoxGeometry(ESP32_PIN_SIZE_MM, pinHeight, ESP32_PIN_SIZE_MM),
+        pinMat,
+        [x, pinCenterY, rowZ],
+      );
+      pinMesh.name = pinDef ? `esp32-header-pin:${pinDef.id}` : `esp32-header-pin:${side}:${index}`;
+      pinMesh.userData = { kind: 'esp32-header-pin', pinId: pinDef?.id, side, index };
+      meshes.push(pinMesh);
+    }
   }
 
   return { group, meshes };
@@ -337,38 +427,85 @@ function buildHx711(THREE: ThreeModule, component: Component): { group: import('
   return { group, meshes };
 }
 
-function buildLoadCell(THREE: ThreeModule, component: Component): { group: import('three').Group; meshes: import('three').Mesh[] } {
+/** 20 kg bench cells are aluminum bars with an I-beam flexure, not a platform on feet. */
+export function buildLoadCell(THREE: ThreeModule, component: Component): { group: import('three').Group; meshes: import('three').Mesh[] } {
   const group = new THREE.Group();
   const meshes: import('three').Mesh[] = [];
   const [w, h, d] = component.dimensions;
   const aluminum = new THREE.MeshStandardMaterial({
-    color: '#bfc5cc',
-    roughness: 0.32,
-    metalness: 0.88,
+    color: '#c5ccd3',
+    roughness: 0.28,
+    metalness: 0.85,
   });
+  const endLength = w * 0.28;
+  const pocketLength = Math.max(w - endLength * 2, w * 0.3);
+  const flange = h * 0.22;
+  const web = d * 0.22;
+  const holeRadius = Math.min(h, d) * 0.22;
 
-  const body = addMesh(THREE, group, new THREE.BoxGeometry(w, h * 0.35, d), aluminum);
-  meshes.push(body);
-
-  const beam = addMesh(
-    THREE,
-    group,
-    new THREE.BoxGeometry(w * 0.18, h * 0.55, d * 0.22),
-    aluminum,
-    [0, h * 0.3, 0],
-  );
-  meshes.push(beam);
-
-  for (const xSign of [-1, 1]) {
-    const pad = addMesh(
+  for (const xSign of [-1, 1] as const) {
+    const end = addMesh(
       THREE,
       group,
-      new THREE.CylinderGeometry(w * 0.07, w * 0.07, h * 0.04, 20),
-      new THREE.MeshStandardMaterial({ color: '#8a9099', roughness: 0.4, metalness: 0.75 }),
-      [xSign * w * 0.34, -h * 0.18, 0],
+      new THREE.BoxGeometry(endLength, h, d),
+      aluminum,
+      [xSign * (w / 2 - endLength / 2), 0, 0],
     );
-    meshes.push(pad);
+    end.name = xSign < 0 ? 'load-cell-end-neg' : 'load-cell-end-pos';
+    meshes.push(end);
+
+    const hole = addMesh(
+      THREE,
+      group,
+      new THREE.CylinderGeometry(holeRadius, holeRadius, h * 1.08, 20),
+      new THREE.MeshStandardMaterial({ color: '#1a1d22', roughness: 0.82, metalness: 0.08 }),
+      [xSign * (w / 2 - endLength * 0.45), 0, 0],
+    );
+    hole.name = 'load-cell-hole';
+    meshes.push(hole);
   }
+
+  for (const ySign of [-1, 1] as const) {
+    const plate = addMesh(
+      THREE,
+      group,
+      new THREE.BoxGeometry(pocketLength, flange, d),
+      aluminum,
+      [0, ySign * (h / 2 - flange / 2), 0],
+    );
+    plate.name = ySign > 0 ? 'load-cell-flange-top' : 'load-cell-flange-bottom';
+    meshes.push(plate);
+  }
+
+  const webMesh = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(pocketLength * 0.55, Math.max(h - flange * 2, h * 0.2), web),
+    aluminum,
+  );
+  webMesh.name = 'load-cell-web';
+  meshes.push(webMesh);
+
+  const gauge = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(pocketLength * 0.28, 0.4, d * 0.55),
+    new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.7, metalness: 0.05 }),
+    [0, h / 2 + 0.15, 0],
+  );
+  gauge.name = 'load-cell-gauge';
+  meshes.push(gauge);
+
+  const jacket = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(1.1, 1.1, 12, 12),
+    new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.75, metalness: 0.05 }),
+    [-w * 0.08, 0, d / 2 + 6],
+    [Math.PI / 2, 0, 0],
+  );
+  jacket.name = 'load-cell-cable';
+  meshes.push(jacket);
 
   return { group, meshes };
 }
@@ -457,7 +594,9 @@ export function buildResistor(THREE: ThreeModule, component: Component): { group
   return { group, meshes };
 }
 
-function buildPowerBlock(THREE: ThreeModule, component: Component): { group: import('three').Group; meshes: import('three').Mesh[] } {
+/** USB brick with a proud blue badge. The badge must not share the housing top
+ *  plane: coplanar faces z-fight and pick up shadow acne as gray/black dashes. */
+export function buildPowerBlock(THREE: ThreeModule, component: Component): { group: import('three').Group; meshes: import('three').Mesh[] } {
   const group = new THREE.Group();
   const meshes: import('three').Mesh[] = [];
   const [w, h, d] = component.dimensions;
@@ -468,25 +607,42 @@ function buildPowerBlock(THREE: ThreeModule, component: Component): { group: imp
     new THREE.BoxGeometry(w, h, d),
     new THREE.MeshStandardMaterial({ color: '#20242b', roughness: 0.68, metalness: 0.12 }),
   );
+  housing.name = 'power-housing';
   meshes.push(housing);
 
+  const accentH = Math.max(h * 0.1, 1.4);
+  const sink = accentH * 0.4;
   const accent = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(w * 0.82, h * 0.08, d * 0.82),
-    new THREE.MeshStandardMaterial({ color: '#3d7be0', roughness: 0.45, metalness: 0.2, emissive: '#1a3f80', emissiveIntensity: 0.25 }),
-    [0, h * 0.46, 0],
+    new THREE.BoxGeometry(w * 0.78, accentH, d * 0.72),
+    new THREE.MeshStandardMaterial({
+      color: '#3d7be0',
+      roughness: 0.45,
+      metalness: 0.2,
+      emissive: '#1a3f80',
+      emissiveIntensity: 0.25,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    }),
+    [0, h / 2 + accentH / 2 - sink, 0],
   );
+  accent.name = 'power-accent';
+  accent.receiveShadow = false;
   meshes.push(accent);
 
+  const accentTop = h / 2 + accentH - sink;
+  const terminalH = Math.max(h * 0.08, 1.1);
   for (let i = 0; i < 2; i += 1) {
     const terminal = addMesh(
       THREE,
       group,
-      new THREE.CylinderGeometry(w * 0.05, w * 0.05, h * 0.08, 16),
+      new THREE.CylinderGeometry(w * 0.05, w * 0.05, terminalH, 16),
       new THREE.MeshStandardMaterial({ color: '#d4af37', roughness: 0.3, metalness: 0.85 }),
-      [(i === 0 ? -1 : 1) * w * 0.28, h * 0.52, 0],
+      [(i === 0 ? -1 : 1) * w * 0.28, accentTop + terminalH / 2, 0],
     );
+    terminal.name = 'power-terminal';
     meshes.push(terminal);
   }
 
@@ -514,6 +670,9 @@ function addPinMarkers(
   root: import('three').Group,
   component: Component,
 ): import('three').Mesh[] {
+  // WHY: ESP32 already has header pin meshes at the same anchors; yellow spheres would hide them.
+  if (component.kind === 'esp32') return [];
+
   const markers: import('three').Mesh[] = [];
   const markerMaterial = new THREE.MeshStandardMaterial({
     color: '#facc15',
@@ -721,7 +880,10 @@ export function create3DView(host: HTMLElement, diagram: Diagram, callbacks: Vie
     if (!initialized || disposed) return;
     const box = new THREE.Box3();
     for (const entry of sceneObjects.values()) {
-      box.expandByObject(entry.object);
+      entry.object.traverse((child) => {
+        const mesh = child as import('three').Mesh;
+        if (mesh.isMesh) box.expandByObject(mesh);
+      });
     }
     if (box.isEmpty()) {
       defaultCameraPosition = new THREE.Vector3(120, 90, 140);
@@ -734,9 +896,10 @@ export function create3DView(host: HTMLElement, diagram: Diagram, callbacks: Vie
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z, 40);
-    const distance = maxDim * 1.8;
+    // Look from +Z so X-aligned bars (load cell, boards) read in profile, not end-on.
+    const distance = maxDim * 1.15;
     defaultTarget = center.clone();
-    defaultCameraPosition = center.clone().add(new THREE.Vector3(distance * 0.85, distance * 0.55, distance));
+    defaultCameraPosition = center.clone().add(new THREE.Vector3(-distance * 0.18, distance * 0.42, distance * 0.92));
     camera.position.copy(defaultCameraPosition);
     controls.target.copy(defaultTarget);
     controls.update();
@@ -860,12 +1023,14 @@ export function create3DView(host: HTMLElement, diagram: Diagram, callbacks: Vie
       scene.background = new THREE.Color('#eef1f5');
 
       camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
-      camera.position.set(120, 90, 140);
+      defaultCameraPosition = new THREE.Vector3(120, 90, 140);
+      defaultTarget = new THREE.Vector3(0, 0, 0);
+      camera.position.copy(defaultCameraPosition);
 
       controls = new OrbitControls(camera, canvas);
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
-      controls.target.set(0, 0, 0);
+      controls.target.copy(defaultTarget);
       controls.addEventListener('change', scheduleRender);
 
       raycaster = new THREE.Raycaster();
@@ -922,8 +1087,9 @@ export function create3DView(host: HTMLElement, diagram: Diagram, callbacks: Vie
         });
       }
 
-      fitCamera();
+      // WHY: fitCamera/resize/highlight all no-op while uninitialized; mark ready first.
       initialized = true;
+      fitCamera();
       resize();
       applyHighlight(selectedId, hoveredId);
       scheduleRender();
@@ -1013,7 +1179,8 @@ export function create3DView(host: HTMLElement, diagram: Diagram, callbacks: Vie
       applyHighlight(selectedId, hoveredId);
     },
     reset(): void {
-      if (disposed || !initialized) return;
+      // Init is async; copying unset camera defaults throws inside Vector3.copy.
+      if (disposed || !initialized || !defaultCameraPosition || !defaultTarget) return;
       camera.position.copy(defaultCameraPosition);
       controls.target.copy(defaultTarget);
       controls.update();
