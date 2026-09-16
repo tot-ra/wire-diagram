@@ -2,6 +2,9 @@
 
 A framework-independent TypeScript library that turns a YAML wiring document into an interactive **SVG schematic + Three.js canvas**, with a compact inspector for selected parts. One validated pin-level graph drives both views. `getBom` remains available from the API.
 
+<img width="1077" height="907" alt="Screenshot 2026-09-16 at 13 01 10" src="https://github.com/user-attachments/assets/c3860d62-6cd0-4beb-970a-a134e5b99d5b" />
+
+
 ## Run the demo
 
 Requires Node.js 22.12+ and npm.
