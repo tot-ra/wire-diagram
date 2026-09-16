@@ -1,5 +1,6 @@
 import type { Component } from '../../types.js';
 import { addMesh } from '../helpers.js';
+import { addUsbA, addUsbC, USB_A_SINGLE_MM, USB_C_MM } from '../parts/usb.js';
 import type { ModelDefinition, ThreeModule } from '../types.js';
 
 /** Jetson Orin Nano Super carrier: PCB, finned heatsink, and the lab I/O cluster. */
@@ -73,25 +74,17 @@ export function buildJetson(
 
   const portY = 1.6;
   const portZ = (offset: number): number => offset;
-  const usbc = addMesh(
-    THREE,
-    group,
-    new THREE.BoxGeometry(8.4, 3.2, 9),
-    new THREE.MeshStandardMaterial({ color: '#c9cdd3', roughness: 0.35, metalness: 0.8 }),
-    [-w / 2 + 4.2, portY, portZ(28)],
-  );
-  usbc.name = 'jetson-usbc';
-  meshes.push(usbc);
-
-  const usba = addMesh(
-    THREE,
-    group,
-    new THREE.BoxGeometry(12, 4.5, 14),
-    new THREE.MeshStandardMaterial({ color: '#3a3d44', roughness: 0.45, metalness: 0.4 }),
-    [-w / 2 + 6, portY, portZ(10)],
-  );
-  usba.name = 'jetson-usba';
-  meshes.push(usba);
+  addUsbC(THREE, group, meshes, {
+    position: [-w / 2 + USB_C_MM.depth / 2, portY, portZ(28)],
+    facing: '-x',
+    namePrefix: 'jetson-usbc',
+  });
+  addUsbA(THREE, group, meshes, {
+    position: [-w / 2 + USB_A_SINGLE_MM.depth / 2, portY + 0.5, portZ(10)],
+    facing: '-x',
+    generation: 3,
+    namePrefix: 'jetson-usba',
+  });
 
   const hdmi = addMesh(
     THREE,

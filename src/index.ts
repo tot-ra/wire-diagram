@@ -10,6 +10,14 @@ export { renderSVG } from './svg.js';
 export type * from './types.js';
 export { BUILTIN_MODEL_KINDS };
 export { addMesh, cssColor } from './models/helpers.js';
+export {
+  HEADER_HEIGHT_MM,
+  HEADER_PITCH_MM,
+  addPinHeader,
+  createHeaderLook,
+  headerPinTipY,
+} from './models/parts/pin-header.js';
+export { addMicroUsb, addUsbA, addUsbB, addUsbC } from './models/parts/usb.js';
 export { localPinPosition } from './models/layout.js';
 export { getRegisteredModel, registerModel, unregisterModel } from './models/registry.js';
 export type { ModelBuildResult, ModelDefinition, PinLayoutContext, ThreeModule } from './models/types.js';

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DiagramParseError, getBom, parseDiagram } from '../src/parser.js';
 
@@ -237,6 +239,28 @@ it('accepts Entrance Observer product kinds', () => {
   expect(diagram.components.map((c) => c.kind)).toEqual(['jetson', 'camera']);
 });
 
+it('accepts catalog sensor, Pi, connector and motion kinds', () => {
+  const diagram = parseDiagram({
+    version: 1,
+    title: 'catalog',
+    components: [
+      { id: 'mic', label: 'Mic', kind: 'max4466', pins: [{ id: 'OUT' }] },
+      { id: 'pi', label: 'Pi 5', kind: 'raspberry-pi', properties: { variant: '5' }, pins: [{ id: 'GPIO' }] },
+      { id: 'uno', label: 'UNO', kind: 'arduino-uno', pins: [{ id: 'D13' }] },
+      { id: 'jack', label: 'Jack', kind: 'barrel-jack', pins: [{ id: 'VCC' }] },
+      { id: 'motor', label: 'Stepper', kind: 'stepper-motor', pins: [{ id: 'A1' }] },
+    ],
+    wires: [],
+  });
+  expect(diagram.components.map((c) => c.kind)).toEqual([
+    'max4466',
+    'raspberry-pi',
+    'arduino-uno',
+    'barrel-jack',
+    'stepper-motor',
+  ]);
+});
+
 it('accepts third-party kebab-case kinds', () => {
   const diagram = parseDiagram({
     version: 1,
@@ -256,6 +280,31 @@ it('rejects kinds that are not lowercase kebab-case', () => {
       wires: [],
     }),
   ).toThrow(/kebab-case/);
+});
+
+it('parses the 3D model gallery demo', () => {
+  const source = readFileSync(resolve(import.meta.dirname, '../examples/showcase.yaml'), 'utf8');
+  const diagram = parseDiagram(source);
+  expect(diagram.components).toHaveLength(33);
+  expect(diagram.components.map((c) => c.kind)).toEqual(
+    expect.arrayContaining([
+      'max4466',
+      'max9814',
+      'ds18b20',
+      'lcd1602',
+      'lcd2004',
+      'raspberry-pi',
+      'arduino-uno',
+      'barrel-jack',
+      'jst-connector',
+      'stepper-motor',
+      'stepper-driver',
+      'led',
+      'status-led',
+    ]),
+  );
+  expect(diagram.components.filter((c) => c.kind === 'raspberry-pi')).toHaveLength(4);
+  expect(diagram.components.filter((c) => c.kind === 'arduino-uno')).toHaveLength(1);
 });
 
 it('rejects misspelled fields, dotted pins and unsafe paint values', () => {

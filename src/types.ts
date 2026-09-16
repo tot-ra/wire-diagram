@@ -20,6 +20,19 @@ export const BUILTIN_MODEL_KINDS = [
   'extrusion',
   'cover',
   'antenna',
+  'max4466',
+  'max9814',
+  'ds18b20',
+  'lcd1602',
+  'lcd2004',
+  'raspberry-pi',
+  'barrel-jack',
+  'jst-connector',
+  'stepper-motor',
+  'stepper-driver',
+  'led',
+  'status-led',
+  'arduino-uno',
 ] as const;
 
 export type BuiltinModelKind = (typeof BUILTIN_MODEL_KINDS)[number];

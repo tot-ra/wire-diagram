@@ -20,7 +20,7 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `kind` | `board` | Built-in: `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `jetson`, `camera`, `lens`, `ssd`, `wifi`, `display`, `mount`, `extrusion`, `cover`, `antenna`. Any other lowercase kebab-case id is valid YAML; 3D uses a registered model or the generic board fallback. |
+| `kind` | `board` | Built-in: `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `jetson`, `camera`, `lens`, `ssd`, `wifi`, `display`, `mount`, `extrusion`, `cover`, `antenna`, `max4466`, `max9814`, `ds18b20`, `lcd1602`, `lcd2004`, `raspberry-pi`, `barrel-jack`, `jst-connector`, `stepper-motor`, `stepper-driver`, `led`, `status-led`, `arduino-uno`. Any other lowercase kebab-case id is valid YAML; 3D uses a registered model or the generic board fallback. `esp32` is a 38-pin USB-C ESP32-WROOM-32 DevKit clone (dual 19-pin males, EN/BOOT, CH340, AMS1117). `raspberry-pi` uses `properties.variant` (`4`, `5`, `zero`, `pico`). Pi 4 is the 85 x 56 mm Model B silhouette (USB-C, dual micro-HDMI, TRRS, stacked USB-A, magjack). Waterproof DS18B20 is `probe`; the 3-pin PCB module is `ds18b20`. Character LCDs (`lcd1602`, `lcd2004`) are flat I2C modules with glass on +Y; standing HDMI panels stay `display`. `arduino-uno` is the UNO R3 development board (USB-B, DC jack, DIP ATmega328P, female headers). |
 | `pins` | `[]` | Contact definitions below |
 | `dimensions` | `[40, 3, 25]` | Approximate body width X, height Y, depth Z in mm; positive finite numbers |
 | `position` | grid | Component origin `[x,y,z]` in mm, Y up |
@@ -33,7 +33,7 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 | `purchase` | none | `{url, label?, partNumber?}`; http(s) only |
 | `model` | none | External model descriptor below |
 
-Pins require `id`. Optional fields: `label`, `side` (`left` by default or `right`), `position` (local `[x,y,z]` in mm), `voltage` (nominal metadata). Pin ordering follows document order on each side. When omitted, physical anchors are placed at the left/right body edge and spread over depth, except `kind: esp32`, which defaults to a 19-pin 2.54 mm dual header on the long edges (schematic left -> +Z, right -> -Z). These defaults are not verified hardware pinouts.
+Pins require `id`. Optional fields: `label`, `side` (`left` by default or `right`), `position` (local `[x,y,z]` in mm), `voltage` (nominal metadata). Pin ordering follows document order on each side. When omitted, physical anchors are placed at the left/right body edge and spread over depth, except `kind: esp32`, which defaults to a 19-pin 2.54 mm dual header on the long edges (schematic left -> +Z, right -> -Z), `kind: arduino-uno`, which defaults to UNO R3 female headers (schematic left -> digital +Z, right -> power/analog -Z; named ids such as `D13`, `5V`, `A0` land on the matching socket), and `kind: raspberry-pi`, which lands named ids on the 40-pin header or the matching Pi 4 port (`USB-C`, `HDMI`, `GPIO`, `SDA`). These defaults are not verified hardware pinouts.
 
 ## Wires and junctions
 
@@ -98,6 +98,8 @@ const widget = createWiringDiagram(container, yamlText, {
 Call `registerModel` before the first 3D view if you replace a built-in kind. The 3D chunk will not overwrite an already registered kind. Unknown kinds still parse and fall back to the generic board silhouette.
 
 `addMesh` applies shadow flags and optional local position/rotation. Coordinates stay millimetres, Y up. Pin markers are skipped when `hidePinMarkers` is true.
+
+Shared connector silhouettes live under `src/models/parts/` and are safe to import from the public package (`addPinHeader`, `addUsbA`, `addUsbB`, `addUsbC`, `addMicroUsb`) without pulling the 3D view chunk. Use them for 2.54 mm headers and USB shells instead of one-off boxes so Pi GPIO, Pico rails, ESP32 DevKit headers, Arduino UNO Type-B, and stacked USB-A stay visually consistent.
 
 ## Demo electrical decisions
 

@@ -1,0 +1,377 @@
+version: 1
+title: Built-in 3D model gallery
+description: All 30 illustrative silhouettes shipped with wire-diagram · Raspberry Pi shown as four board versions
+notes:
+  - Open the 3D view to browse every built-in model. Schematic layout is a catalog; wires are minimal demos only.
+  - Models are approximate lab silhouettes, not verified manufacturing CAD.
+  - Waterproof DS18B20 stays kind probe; kind ds18b20 is the 3-pin AliExpress PCB module.
+groups:
+  - { id: lab, label: Beehive sensor bench, color: '#64a888' }
+  - { id: observer, label: Entrance observer, color: '#6b8fd4' }
+  - { id: frame, label: Enclosure, color: '#8a9098' }
+  - { id: displays, label: Displays, color: '#3d8a6e' }
+  - { id: sensors, label: Sensor modules, color: '#c47a3a' }
+  - { id: sbc, label: Raspberry Pi, color: '#c31c4a' }
+  - { id: arduino, label: Arduino, color: '#0a6e74' }
+  - { id: connectors, label: Connectors, color: '#7a6b58' }
+  - { id: motion, label: Automation, color: '#5a7a4a' }
+  - { id: indicators, label: Indicators, color: '#c9a227' }
+components:
+  - id: board
+    label: Generic board
+    kind: board
+    group: lab
+    dimensions: [40, 3, 25]
+    position: [-260, 6, -90]
+    schematic: [80, 80]
+    pins: [{ id: SIG, side: left }]
+  - id: usb
+    label: USB 5 V supply
+    kind: power
+    group: lab
+    dimensions: [28, 14, 22]
+    position: [-170, 8, -90]
+    schematic: [220, 80]
+    pins:
+      - { id: VBUS, label: '5 V', side: right, voltage: 5 }
+      - { id: GND, side: right, voltage: 0 }
+  - id: esp
+    label: ESP32 DevKit
+    kind: esp32
+    group: lab
+    dimensions: [52, 3, 28]
+    position: [-70, 6, -90]
+    schematic: [360, 80]
+    pins:
+      - { id: VIN, side: left, voltage: 5 }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: 3V3, side: right, voltage: 3.3 }
+  - id: hx
+    label: HX711 amplifier
+    kind: hx711
+    group: lab
+    dimensions: [33, 2, 21]
+    position: [30, 6, -90]
+    schematic: [500, 80]
+    pins:
+      - { id: VCC, side: left, voltage: 3.3 }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: E+, side: right }
+      - { id: A+, side: right }
+  - id: load
+    label: Load cell · 20 kg
+    kind: load-cell
+    group: lab
+    dimensions: [75, 13, 13]
+    position: [130, 7, -90]
+    schematic: [640, 80]
+    pins:
+      - { id: E+, side: left }
+      - { id: A+, side: left }
+  - id: pullup
+    label: 4.7 kΩ resistor
+    kind: resistor
+    group: lab
+    dimensions: [10, 3, 3]
+    position: [230, 6, -90]
+    schematic: [780, 80]
+    pins:
+      - { id: VCC, side: left }
+      - { id: DQ, side: right }
+    properties: { resistance: '4.7 kΩ' }
+  - id: probe
+    label: DS18B20 probe
+    kind: probe
+    group: lab
+    dimensions: [50, 6, 6]
+    position: [310, 5, -90]
+    schematic: [920, 80]
+    pins:
+      - { id: VDD, side: left, voltage: 3.3 }
+      - { id: DQ, side: left }
+      - { id: GND, side: left, voltage: 0 }
+  - id: jetson
+    label: Jetson Orin Nano
+    kind: jetson
+    group: observer
+    dimensions: [100, 22, 79]
+    position: [-90, 12, 50]
+    schematic: [120, 280]
+    pins:
+      - { id: USBC, label: USB-C PD, side: left, voltage: 19 }
+      - { id: HDMI, side: left }
+      - { id: ETH, side: left }
+  - id: cam
+    label: USB camera
+    kind: camera
+    group: observer
+    dimensions: [42, 38, 38]
+    position: [30, 10, 50]
+    schematic: [320, 280]
+    pins: [{ id: USB, side: left }]
+  - id: lens
+    label: CS varifocal lens
+    kind: lens
+    group: observer
+    dimensions: [50, 36, 36]
+    position: [100, 10, 50]
+    schematic: [460, 280]
+    pins: [{ id: MOUNT, side: left }]
+  - id: ssd
+    label: M.2 NVMe SSD
+    kind: ssd
+    group: observer
+    dimensions: [80, 2.4, 22]
+    position: [180, 6, 50]
+    schematic: [600, 280]
+    pins: [{ id: M2, side: left }]
+  - id: wifi
+    label: M.2 WiFi NIC
+    kind: wifi
+    group: observer
+    dimensions: [30, 1.5, 22]
+    position: [260, 6, 50]
+    schematic: [740, 280]
+    pins: [{ id: M2, side: left }]
+  - id: mount
+    label: Camera mount
+    kind: mount
+    group: observer
+    dimensions: [40, 50, 40]
+    position: [330, 12, 50]
+    schematic: [880, 280]
+    pins: [{ id: BASE, side: left }]
+  - id: antenna
+    label: Paddle antenna
+    kind: antenna
+    group: observer
+    dimensions: [8, 45, 12]
+    position: [400, 10, 50]
+    schematic: [1020, 280]
+    pins: [{ id: COAX, side: left }]
+  - id: rail
+    label: 2020 extrusion
+    kind: extrusion
+    group: frame
+    dimensions: [320, 20, 20]
+    position: [-120, 10, 190]
+    schematic: [200, 480]
+    pins: [{ id: SLOT, side: left }]
+  - id: panel
+    label: 7 inch HDMI panel
+    kind: display
+    group: displays
+    dimensions: [165, 100, 8]
+    position: [90, 55, 190]
+    schematic: [520, 480]
+    pins:
+      - { id: HDMI, side: left }
+      - { id: PWR, side: left, voltage: 12 }
+  - id: cover
+    label: Acrylic cover
+    kind: cover
+    group: frame
+    dimensions: [120, 3, 80]
+    position: [290, 8, 190]
+    schematic: [840, 480]
+    pins: [{ id: EDGE, side: left }]
+  - id: max4466
+    label: MAX4466 mic amp
+    kind: max4466
+    group: sensors
+    dimensions: [20, 6, 14]
+    position: [-260, 5, -240]
+    schematic: [80, 680]
+    pins:
+      - { id: VCC, side: left, voltage: 3.3 }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: OUT, side: right }
+  - id: max9814
+    label: MAX9814 AGC mic
+    kind: max9814
+    group: sensors
+    dimensions: [24, 6, 16]
+    position: [-170, 5, -240]
+    schematic: [240, 680]
+    pins:
+      - { id: VDD, side: left, voltage: 3.3 }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: OUT, side: right }
+      - { id: GAIN, side: right }
+  - id: ds18
+    label: DS18B20 module
+    kind: ds18b20
+    group: sensors
+    dimensions: [21, 10, 10]
+    position: [-80, 5, -240]
+    schematic: [400, 680]
+    pins:
+      - { id: VDD, side: left, voltage: 3.3 }
+      - { id: DQ, side: right }
+      - { id: GND, side: left, voltage: 0 }
+  - id: lcd
+    label: LCD1602 I2C
+    kind: lcd1602
+    group: displays
+    dimensions: [80, 13, 36]
+    position: [40, 8, -240]
+    schematic: [560, 680]
+    pins:
+      - { id: GND, side: left, voltage: 0 }
+      - { id: VCC, side: left, voltage: 5 }
+      - { id: SDA, side: right }
+      - { id: SCL, side: right }
+  - id: lcd2004
+    label: LCD2004 I2C
+    kind: lcd2004
+    group: displays
+    dimensions: [98, 14, 60]
+    position: [160, 9, -240]
+    schematic: [780, 680]
+    purchase:
+      url: https://www.aliexpress.com/item/1005007132655492.html
+      label: LCD2004 I2C
+      partNumber: LCD2004
+    pins:
+      - { id: GND, side: left, voltage: 0 }
+      - { id: VCC, side: left, voltage: 5 }
+      - { id: SDA, side: right }
+      - { id: SCL, side: right }
+  - id: pi4
+    label: Raspberry Pi 4
+    kind: raspberry-pi
+    group: sbc
+    dimensions: [85, 17, 56]
+    position: [-220, 10, 330]
+    schematic: [80, 880]
+    properties: { variant: '4' }
+    pins:
+      - { id: USB-C, side: left, voltage: 5 }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: GPIO, side: right }
+      - { id: HDMI, side: right }
+  - id: pi5
+    label: Raspberry Pi 5
+    kind: raspberry-pi
+    group: sbc
+    dimensions: [85, 17, 56]
+    position: [-80, 10, 330]
+    schematic: [280, 880]
+    properties: { variant: '5' }
+    pins:
+      - { id: USB-C, side: left, voltage: 5 }
+      - { id: PCIE, side: left }
+      - { id: GPIO, side: right }
+  - id: pizero
+    label: Raspberry Pi Zero 2 W
+    kind: raspberry-pi
+    group: sbc
+    dimensions: [65, 8, 30]
+    position: [50, 6, 330]
+    schematic: [480, 880]
+    properties: { variant: zero-2 }
+    pins:
+      - { id: USB, side: left, voltage: 5 }
+      - { id: HDMI, side: left }
+      - { id: GPIO, side: right }
+  - id: pico
+    label: Raspberry Pi Pico
+    kind: raspberry-pi
+    group: sbc
+    dimensions: [51, 6, 21]
+    position: [160, 6, 330]
+    schematic: [680, 880]
+    properties: { variant: pico }
+    pins:
+      - { id: USB, side: left, voltage: 5 }
+      - { id: GP0, side: right }
+      - { id: GND, side: left, voltage: 0 }
+  - id: uno
+    label: Arduino UNO R3
+    kind: arduino-uno
+    group: arduino
+    dimensions: [68.6, 15, 53.4]
+    position: [-260, 9, 400]
+    schematic: [80, 1680]
+    pins:
+      - { id: D13, side: left }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: '5V', side: right, voltage: 5 }
+      - { id: A0, side: right }
+  - id: barrel
+    label: 5.5 mm barrel jack
+    kind: barrel-jack
+    group: connectors
+    dimensions: [14, 11, 9]
+    position: [-260, 7, 470]
+    schematic: [80, 1080]
+    pins:
+      - { id: VCC, side: left, voltage: 12 }
+      - { id: GND, side: right, voltage: 0 }
+  - id: jst
+    label: JST-XH 4-pin
+    kind: jst-connector
+    group: connectors
+    dimensions: [14, 8, 10]
+    position: [-180, 6, 470]
+    schematic: [260, 1080]
+    properties: { pins: 4 }
+    pins:
+      - { id: '1', side: left }
+      - { id: '2', side: left }
+      - { id: '3', side: right }
+      - { id: '4', side: right }
+  - id: stepper
+    label: NEMA17 stepper
+    kind: stepper-motor
+    group: motion
+    dimensions: [48, 42, 42]
+    position: [-70, 22, 470]
+    schematic: [80, 1280]
+    pins:
+      - { id: A1, side: left }
+      - { id: A2, side: left }
+      - { id: B1, side: right }
+      - { id: B2, side: right }
+  - id: driver
+    label: A4988 stepper driver
+    kind: stepper-driver
+    group: motion
+    dimensions: [20, 8, 15]
+    position: [50, 6, 470]
+    schematic: [280, 1280]
+    pins:
+      - { id: VMOT, side: left, voltage: 12 }
+      - { id: GND, side: left, voltage: 0 }
+      - { id: 1A, side: right }
+      - { id: 2A, side: right }
+  - id: led
+    label: 5 mm LED
+    kind: led
+    group: indicators
+    dimensions: [6, 10, 6]
+    position: [130, 6, 470]
+    schematic: [80, 1480]
+    color: '#e23d28'
+    pins:
+      - { id: A, side: left }
+      - { id: K, side: right }
+  - id: status
+    label: Status LED
+    kind: status-led
+    group: indicators
+    dimensions: [10, 8, 8]
+    position: [200, 6, 470]
+    schematic: [260, 1480]
+    color: '#3dcc6a'
+    pins:
+      - { id: A, side: left }
+      - { id: K, side: right }
+wires:
+  - { id: cam-usb, from: cam.USB, to: jetson.USBC, color: '#2578c4', label: USB 3, lengthMm: 400 }
+  - { id: panel-hdmi, from: panel.HDMI, to: jetson.HDMI, color: '#8d6e2f', label: HDMI, lengthMm: 600 }
+  - { id: lcd-sda, from: lcd.SDA, to: pi4.GPIO, color: '#c47a3a', label: I2C SDA, lengthMm: 150 }
+  - { id: coil-a, from: stepper.A1, to: driver.1A, color: '#cf3740', label: coil A, lengthMm: 80 }
+  - { id: jack-v, from: barrel.VCC, to: driver.VMOT, color: '#e23d28', label: 12 V, lengthMm: 200 }
+  - { id: mic-out, from: max4466.OUT, to: pico.GP0, color: '#7b5ea7', label: audio, lengthMm: 120 }
+  - { id: led-a, from: pi4.GPIO, to: led.A, color: '#e23d28', label: status, lengthMm: 180, dashed: true }

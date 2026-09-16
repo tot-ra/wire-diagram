@@ -23,16 +23,46 @@ export {
   ESP32_PCB_THICKNESS_MM,
   ESP32_PIN_PROUD_MM,
   ESP32_PIN_SIZE_MM,
+  buildArduinoUno,
+  resolveArduinoUnoPinPosition,
+  arduinoUnoDigitalPinX,
+  arduinoUnoHeaderRowZ,
+  arduinoUnoPinTipY,
+  arduinoUnoPowerPinX,
+  buildBarrelJack,
   buildCamera,
   buildDisplay,
+  buildDs18b20,
+  resolveDs18b20PinPosition,
   buildEsp32,
   buildJetson,
+  buildJstConnector,
+  buildLcd1602,
+  resolveLcd1602PinPosition,
+  buildLcd2004,
+  resolveLcd2004PinPosition,
+  buildLed,
+  ledEpoxyBottomY,
+  ledLeadAttachY,
+  ledLeadX,
+  resolveLedPinPosition,
   buildLens,
   buildLoadCell,
+  buildMax4466,
+  buildMax9814,
   buildPowerBlock,
   buildProbe,
+  buildRaspberryPi,
+  resolveRaspberryPiPinPosition,
+  raspberryPiPinTipY,
+  pi4FromCorner,
   buildResistor,
   buildSsd,
+  buildStatusLed,
+  buildStepperDriver,
+  buildStepperMotor,
+  jstPinCount,
+  raspberryPiVariant,
   esp32HeaderHousingTopY,
   esp32HeaderPinX,
   esp32HeaderRowZ,
@@ -401,7 +431,8 @@ export function create3DView(
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z, 40);
     // Look from +Z so X-aligned bars (load cell, boards) read in profile, not end-on.
-    const distance = maxDim * 1.15;
+    // One-part gallery cards need more distance than a spread assembly; 1.15 clips cubes in a square viewport.
+    const distance = maxDim * (diagram.components.length <= 1 ? 2.4 : 1.15);
     defaultTarget = center.clone();
     defaultCameraPosition = center.clone().add(new THREE.Vector3(-distance * 0.18, distance * 0.42, distance * 0.92));
     camera.position.copy(defaultCameraPosition);

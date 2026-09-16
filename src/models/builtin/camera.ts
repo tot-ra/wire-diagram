@@ -1,5 +1,6 @@
 import type { Component } from '../../types.js';
 import { addMesh } from '../helpers.js';
+import { addUsbC, USB_C_MM } from '../parts/usb.js';
 import type { ModelDefinition, ThreeModule } from '../types.js';
 
 /** Industrial USB box camera with a CS mount ring and a 1/4 inch foot. */
@@ -32,15 +33,11 @@ export function buildCamera(
   ring.name = 'camera-cs-ring';
   meshes.push(ring);
 
-  const usb = addMesh(
-    THREE,
-    group,
-    new THREE.BoxGeometry(8, 3.2, 9),
-    new THREE.MeshStandardMaterial({ color: '#c5c8ce', roughness: 0.35, metalness: 0.8 }),
-    [-w / 2 + 3.5, 0, 0],
-  );
-  usb.name = 'camera-usb';
-  meshes.push(usb);
+  addUsbC(THREE, group, meshes, {
+    position: [-w / 2 + USB_C_MM.depth / 2, 0, 0],
+    facing: '-x',
+    namePrefix: 'camera-usb',
+  });
 
   const tripod = addMesh(
     THREE,
