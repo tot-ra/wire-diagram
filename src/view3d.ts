@@ -649,6 +649,489 @@ export function buildPowerBlock(THREE: ThreeModule, component: Component): { gro
   return { group, meshes };
 }
 
+/** Jetson Orin Nano Super carrier: PCB, finned heatsink, and the lab I/O cluster. */
+export function buildJetson(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+  const pcbH = Math.min(h * 0.12, 1.8);
+
+  const pcb = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w, pcbH, d),
+    new THREE.MeshStandardMaterial({ color: '#15233a', roughness: 0.58, metalness: 0.18 }),
+  );
+  pcb.name = 'jetson-pcb';
+  meshes.push(pcb);
+
+  const stripe = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w * 0.92, 0.35, 3.2),
+    new THREE.MeshStandardMaterial({ color: '#76b900', roughness: 0.4, metalness: 0.2 }),
+    [0, pcbH / 2 + 0.2, -d / 2 + 4],
+  );
+  stripe.name = 'jetson-stripe';
+  meshes.push(stripe);
+
+  const sinkW = w * 0.52;
+  const sinkH = Math.max(h - pcbH - 2, 8);
+  const sinkD = d * 0.48;
+  const sinkY = pcbH / 2 + sinkH / 2;
+  const sink = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(sinkW, sinkH * 0.35, sinkD),
+    new THREE.MeshStandardMaterial({ color: '#c5cdd6', roughness: 0.28, metalness: 0.86 }),
+    [w * 0.04, pcbH / 2 + sinkH * 0.18, 0],
+  );
+  sink.name = 'jetson-heatsink';
+  meshes.push(sink);
+
+  const finCount = 8;
+  const finW = sinkW * 0.9;
+  const finH = sinkH * 0.55;
+  const finT = Math.max(sinkD / (finCount * 2.4), 0.7);
+  for (let i = 0; i < finCount; i += 1) {
+    const z = -sinkD / 2 + (i + 0.5) * (sinkD / finCount);
+    const fin = addMesh(
+      THREE,
+      group,
+      new THREE.BoxGeometry(finW, finH, finT),
+      new THREE.MeshStandardMaterial({ color: '#d7dee6', roughness: 0.32, metalness: 0.82 }),
+      [w * 0.04, pcbH / 2 + sinkH * 0.35 + finH / 2, z],
+    );
+    fin.name = 'jetson-fin';
+    meshes.push(fin);
+  }
+
+  const fan = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(Math.min(sinkW, sinkD) * 0.22, Math.min(sinkW, sinkD) * 0.22, 2.2, 20),
+    new THREE.MeshStandardMaterial({ color: '#1b1d22', roughness: 0.55, metalness: 0.3 }),
+    [w * 0.04, pcbH / 2 + sinkH * 0.35 + finH + 1.2, 0],
+  );
+  fan.name = 'jetson-fan';
+  meshes.push(fan);
+
+  const portY = 1.6;
+  const portZ = (offset: number): number => offset;
+  const usbc = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(8.4, 3.2, 9),
+    new THREE.MeshStandardMaterial({ color: '#c9cdd3', roughness: 0.35, metalness: 0.8 }),
+    [-w / 2 + 4.2, portY, portZ(28)],
+  );
+  usbc.name = 'jetson-usbc';
+  meshes.push(usbc);
+
+  const usba = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(12, 4.5, 14),
+    new THREE.MeshStandardMaterial({ color: '#3a3d44', roughness: 0.45, metalness: 0.4 }),
+    [-w / 2 + 6, portY, portZ(10)],
+  );
+  usba.name = 'jetson-usba';
+  meshes.push(usba);
+
+  const hdmi = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(10, 3.6, 14),
+    new THREE.MeshStandardMaterial({ color: '#8d6e2f', roughness: 0.4, metalness: 0.55 }),
+    [-w / 2 + 5, portY, portZ(-8)],
+  );
+  hdmi.name = 'jetson-hdmi';
+  meshes.push(hdmi);
+
+  const rj45 = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(14, 8, 16),
+    new THREE.MeshStandardMaterial({ color: '#c9a227', roughness: 0.45, metalness: 0.35 }),
+    [-w / 2 + 7, 3.2, portZ(-28)],
+  );
+  rj45.name = 'jetson-rj45';
+  meshes.push(rj45);
+
+  return { group, meshes };
+}
+
+/** Industrial USB box camera with a CS mount ring and a 1/4 inch foot. */
+export function buildCamera(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const body = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w * 0.82, h, d),
+    new THREE.MeshStandardMaterial({ color: '#1a1c20', roughness: 0.62, metalness: 0.18 }),
+  );
+  body.name = 'camera-body';
+  meshes.push(body);
+
+  const ringR = Math.min(h, d) * 0.28;
+  const ring = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(ringR, ringR * 1.08, w * 0.22, 24),
+    new THREE.MeshStandardMaterial({ color: '#2f3238', roughness: 0.4, metalness: 0.45 }),
+    [w / 2 - w * 0.08, 0, 0],
+    [0, 0, Math.PI / 2],
+  );
+  ring.name = 'camera-cs-ring';
+  meshes.push(ring);
+
+  const usb = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(8, 3.2, 9),
+    new THREE.MeshStandardMaterial({ color: '#c5c8ce', roughness: 0.35, metalness: 0.8 }),
+    [-w / 2 + 3.5, 0, 0],
+  );
+  usb.name = 'camera-usb';
+  meshes.push(usb);
+
+  const tripod = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(2.2, 2.2, 4, 12),
+    new THREE.MeshStandardMaterial({ color: '#9aa0a8', roughness: 0.3, metalness: 0.85 }),
+    [0, -h / 2 - 1.6, 0],
+  );
+  tripod.name = 'camera-tripod';
+  meshes.push(tripod);
+
+  return { group, meshes };
+}
+
+/** CS/C varifocal barrel: stacked rings plus a front glass disk. */
+export function buildLens(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+  const radius = Math.min(h, d) / 2;
+
+  const barrel = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(radius * 0.88, radius * 0.92, w * 0.72, 24),
+    new THREE.MeshStandardMaterial({ color: '#15171b', roughness: 0.48, metalness: 0.35 }),
+    [0, 0, 0],
+    [0, 0, Math.PI / 2],
+  );
+  barrel.name = 'lens-barrel';
+  meshes.push(barrel);
+
+  const ring = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(radius * 1.02, radius * 1.02, w * 0.14, 24),
+    new THREE.MeshStandardMaterial({ color: '#2a2d33', roughness: 0.42, metalness: 0.4 }),
+    [w * 0.08, 0, 0],
+    [0, 0, Math.PI / 2],
+  );
+  ring.name = 'lens-ring';
+  meshes.push(ring);
+
+  const glass = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(radius * 0.72, radius * 0.72, 1.4, 24),
+    new THREE.MeshStandardMaterial({
+      color: '#7ea4c9',
+      roughness: 0.08,
+      metalness: 0.2,
+      emissive: '#1a3350',
+      emissiveIntensity: 0.2,
+    }),
+    [w / 2 - 0.8, 0, 0],
+    [0, 0, Math.PI / 2],
+  );
+  glass.name = 'lens-glass';
+  meshes.push(glass);
+
+  return { group, meshes };
+}
+
+/** M.2 2280 stick with a gold edge connector on -X. */
+export function buildSsd(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const body = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: '#1c1f24', roughness: 0.55, metalness: 0.2 }),
+  );
+  body.name = 'ssd-body';
+  meshes.push(body);
+
+  const gold = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(Math.min(w * 0.12, 8), h * 1.15, d * 0.92),
+    new THREE.MeshStandardMaterial({ color: '#d4af37', roughness: 0.28, metalness: 0.9 }),
+    [-w / 2 + Math.min(w * 0.06, 4), 0, 0],
+  );
+  gold.name = 'ssd-gold';
+  meshes.push(gold);
+
+  const label = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w * 0.42, 0.2, d * 0.5),
+    new THREE.MeshStandardMaterial({ color: '#ececec', roughness: 0.85, metalness: 0 }),
+    [w * 0.08, h / 2 + 0.12, 0],
+  );
+  label.name = 'ssd-label';
+  meshes.push(label);
+
+  return { group, meshes };
+}
+
+/** M.2 Key-E WiFi NIC with two IPEX nubs. */
+export function buildWifi(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const pcb = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: '#1f6b42', roughness: 0.55, metalness: 0.1 }),
+  );
+  pcb.name = 'wifi-pcb';
+  meshes.push(pcb);
+
+  const shield = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w * 0.48, Math.max(h * 1.8, 1.6), d * 0.55),
+    new THREE.MeshStandardMaterial({ color: '#b8bcc4', roughness: 0.28, metalness: 0.9 }),
+    [w * 0.08, h / 2 + 0.6, 0],
+  );
+  shield.name = 'wifi-shield';
+  meshes.push(shield);
+
+  for (const z of [-d * 0.22, d * 0.22]) {
+    const ipex = addMesh(
+      THREE,
+      group,
+      new THREE.CylinderGeometry(1.1, 1.1, 2.4, 10),
+      new THREE.MeshStandardMaterial({ color: '#d7c089', roughness: 0.3, metalness: 0.85 }),
+      [w / 2 - 1.4, h / 2 + 1.4, z],
+    );
+    ipex.name = 'wifi-ipex';
+    meshes.push(ipex);
+  }
+
+  return { group, meshes };
+}
+
+/** 7 inch HDMI panel: bezel plus a recessed screen so faces do not z-fight. */
+export function buildDisplay(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const bezel = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: '#16181c', roughness: 0.6, metalness: 0.15 }),
+  );
+  bezel.name = 'display-bezel';
+  meshes.push(bezel);
+
+  const screen = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w * 0.9, h * 0.35, d * 0.86),
+    new THREE.MeshStandardMaterial({
+      color: '#2b4c78',
+      roughness: 0.18,
+      metalness: 0.12,
+      emissive: '#163152',
+      emissiveIntensity: 0.35,
+    }),
+    [0, h / 2 - h * 0.08, 0],
+  );
+  screen.name = 'display-screen';
+  meshes.push(screen);
+
+  const hdmi = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(8, 3.2, 12),
+    new THREE.MeshStandardMaterial({ color: '#8d6e2f', roughness: 0.4, metalness: 0.55 }),
+    [-w / 2 + 4, 0, 0],
+  );
+  hdmi.name = 'display-hdmi';
+  meshes.push(hdmi);
+
+  return { group, meshes };
+}
+
+/** Adjustable 1/4 inch camera bracket: base plate, arm, and screw post. */
+export function buildMount(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const base = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w, Math.max(h * 0.18, 3), d),
+    new THREE.MeshStandardMaterial({ color: '#8a9098', roughness: 0.4, metalness: 0.7 }),
+    [0, -h / 2 + 1.6, 0],
+  );
+  base.name = 'mount-base';
+  meshes.push(base);
+
+  const arm = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(Math.max(w * 0.22, 6), h * 0.85, Math.max(d * 0.22, 6)),
+    new THREE.MeshStandardMaterial({ color: '#6f757c', roughness: 0.42, metalness: 0.68 }),
+    [0, 0, 0],
+  );
+  arm.name = 'mount-arm';
+  meshes.push(arm);
+
+  const screw = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(2, 2, Math.max(h * 0.35, 8), 12),
+    new THREE.MeshStandardMaterial({ color: '#d0d4da', roughness: 0.28, metalness: 0.88 }),
+    [0, h / 2 - 1, 0],
+  );
+  screw.name = 'mount-screw';
+  meshes.push(screw);
+
+  return { group, meshes };
+}
+
+/** 2020 V-slot extrusion: black bar with a recessed groove, not a coplanar decal. */
+export function buildExtrusion(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const body = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: '#2a2d32', roughness: 0.45, metalness: 0.55 }),
+  );
+  body.name = 'extrusion-body';
+  meshes.push(body);
+
+  const groove = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(w * 0.98, Math.max(h * 0.22, 3), Math.max(d * 0.28, 4)),
+    new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.55, metalness: 0.4 }),
+    [0, h / 2 - Math.max(h * 0.08, 1.2), 0],
+  );
+  groove.name = 'extrusion-groove';
+  meshes.push(groove);
+
+  return { group, meshes };
+}
+
+/** Thin acrylic optical sample. Slightly proud of a zero-thickness plane. */
+export function buildCover(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const sheet = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(Math.max(w, 1.2), h, d),
+    new THREE.MeshStandardMaterial({
+      color: '#c5d8e8',
+      roughness: 0.12,
+      metalness: 0.05,
+      transparent: true,
+      opacity: 0.42,
+    }),
+  );
+  sheet.name = 'cover-sheet';
+  meshes.push(sheet);
+
+  return { group, meshes };
+}
+
+/** WiFi paddle antenna on a short coax stub. */
+export function buildAntenna(
+  THREE: ThreeModule,
+  component: Component,
+): { group: import('three').Group; meshes: import('three').Mesh[] } {
+  const group = new THREE.Group();
+  const meshes: import('three').Mesh[] = [];
+  const [w, h, d] = component.dimensions;
+
+  const paddle = addMesh(
+    THREE,
+    group,
+    new THREE.BoxGeometry(Math.max(w * 0.35, 4), h * 0.72, Math.max(d * 0.55, 8)),
+    new THREE.MeshStandardMaterial({ color: '#1f2126', roughness: 0.55, metalness: 0.2 }),
+    [0, h * 0.08, 0],
+  );
+  paddle.name = 'antenna-paddle';
+  meshes.push(paddle);
+
+  const coax = addMesh(
+    THREE,
+    group,
+    new THREE.CylinderGeometry(1.1, 1.1, h * 0.45, 10),
+    new THREE.MeshStandardMaterial({ color: '#22262c', roughness: 0.5, metalness: 0.15 }),
+    [0, -h / 2 + h * 0.18, 0],
+  );
+  coax.name = 'antenna-coax';
+  meshes.push(coax);
+
+  return { group, meshes };
+}
+
 function buildBuiltinModel(
   THREE: ThreeModule,
   component: Component,
@@ -661,6 +1144,16 @@ function buildBuiltinModel(
     probe: buildProbe,
     resistor: buildResistor,
     power: buildPowerBlock,
+    jetson: buildJetson,
+    camera: buildCamera,
+    lens: buildLens,
+    ssd: buildSsd,
+    wifi: buildWifi,
+    display: buildDisplay,
+    mount: buildMount,
+    extrusion: buildExtrusion,
+    cover: buildCover,
+    antenna: buildAntenna,
   };
   return builders[component.kind](THREE, component);
 }

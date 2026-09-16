@@ -4,6 +4,10 @@ import * as THREE from 'three';
 import { parseDiagram } from '../src/parser.js';
 import {
   buildEsp32,
+  buildJetson,
+  buildCamera,
+  buildLens,
+  buildSsd,
   buildLoadCell,
   buildPowerBlock,
   buildProbe,
@@ -285,6 +289,77 @@ describe('view3d helpers', () => {
       const tipY = mesh!.position.y + geom.parameters.height / 2;
       expect(tipY).toBeCloseTo(local[1], 5);
     }
+  });
+
+  it('builds a Jetson carrier with heatsink fins and the lab I/O cluster', () => {
+    const component = {
+      id: 'jetson',
+      label: 'Jetson Orin Nano',
+      kind: 'jetson' as const,
+      dimensions: [100, 22, 79] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildJetson(THREE, component);
+    expect(meshes.find((mesh) => mesh.name === 'jetson-pcb')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'jetson-heatsink')).toBeTruthy();
+    expect(meshes.filter((mesh) => mesh.name === 'jetson-fin').length).toBeGreaterThan(4);
+    expect(meshes.find((mesh) => mesh.name === 'jetson-usbc')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'jetson-usba')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'jetson-hdmi')).toBeTruthy();
+    expect(meshes.find((mesh) => mesh.name === 'jetson-rj45')).toBeTruthy();
+  });
+
+  it('builds a USB camera with CS ring on +X and tripod foot below the body', () => {
+    const component = {
+      id: 'cam',
+      label: 'USB camera',
+      kind: 'camera' as const,
+      dimensions: [42, 38, 38] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildCamera(THREE, component);
+    const ring = meshes.find((mesh) => mesh.name === 'camera-cs-ring')!;
+    const tripod = meshes.find((mesh) => mesh.name === 'camera-tripod')!;
+    expect(meshes.find((mesh) => mesh.name === 'camera-body')).toBeTruthy();
+    expect(ring.position.x).toBeGreaterThan(0);
+    expect(tripod.position.y).toBeLessThan(0);
+  });
+
+  it('builds a CS lens barrel along X with a front glass disk', () => {
+    const component = {
+      id: 'lens',
+      label: 'Varifocal lens',
+      kind: 'lens' as const,
+      dimensions: [50, 36, 36] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildLens(THREE, component);
+    const barrel = meshes.find((mesh) => mesh.name === 'lens-barrel')!;
+    const glass = meshes.find((mesh) => mesh.name === 'lens-glass')!;
+    expect(barrel.rotation.z).toBeCloseTo(Math.PI / 2);
+    expect(glass.position.x).toBeGreaterThan(barrel.position.x);
+  });
+
+  it('builds an M.2 SSD with gold fingers on the -X edge', () => {
+    const component = {
+      id: 'ssd',
+      label: 'NVMe',
+      kind: 'ssd' as const,
+      dimensions: [80, 2.4, 22] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildSsd(THREE, component);
+    const gold = meshes.find((mesh) => mesh.name === 'ssd-gold')!;
+    expect(meshes.find((mesh) => mesh.name === 'ssd-body')).toBeTruthy();
+    expect(gold.position.x).toBeLessThan(0);
   });
 });
 

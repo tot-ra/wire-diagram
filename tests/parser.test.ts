@@ -224,6 +224,19 @@ describe('getBom', () => {
   });
 });
 
+it('accepts Entrance Observer product kinds', () => {
+  const diagram = parseDiagram({
+    version: 1,
+    title: 'lab',
+    components: [
+      { id: 'jetson', label: 'Jetson', kind: 'jetson', pins: [{ id: 'USBC' }] },
+      { id: 'cam', label: 'Camera', kind: 'camera', pins: [{ id: 'USB' }] },
+    ],
+    wires: [{ id: 'u', from: 'cam.USB', to: 'jetson.USBC' }],
+  });
+  expect(diagram.components.map((c) => c.kind)).toEqual(['jetson', 'camera']);
+});
+
 it('rejects misspelled fields, dotted pins and unsafe paint values', () => {
   expect(() => parseDiagram({version:1,title:'x',wire:[]})).toThrow();
   expect(() => parseDiagram({version:1,title:'x',components:[{id:'a',label:'A',pins:[{id:'p.q'}]}]})).toThrow();
