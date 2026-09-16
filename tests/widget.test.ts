@@ -7,12 +7,30 @@ describe('widget integration', () => {
     const host = document.createElement('div');
     const widget = createWiringDiagram(host, source);
     expect(host.querySelector('svg')).not.toBeNull();
+    expect(host.querySelector('.wd-inspector')!.hidden).toBe(true);
     expect(() => widget.select('w')).not.toThrow();
+    expect(host.querySelector('.wd-inspector')!.hidden).toBe(false);
     expect(host.querySelector('.wd-inspector')!.textContent).toContain('a.out');
     expect(host.querySelector('[data-id="w"]')!.classList.contains('wd-selected')).toBe(true);
     host.querySelector('[data-id="a"]')!.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter',bubbles:true}));
     expect(host.querySelector('.wd-inspector h3')!.textContent).toBe('A');
+    widget.select(null);
+    expect(host.querySelector('.wd-inspector')!.hidden).toBe(true);
     widget.destroy(); expect(host.children).toHaveLength(0);
+  });
+  it('overlays an iOS-style view switch, reset link and export on the canvas', () => {
+    const host = document.createElement('div');
+    const widget = createWiringDiagram(host, source);
+    expect(host.querySelector('.wd-toolbar button')).toBeNull();
+    expect(host.querySelector('.wd-viewport .wd-view-switch')).not.toBeNull();
+    const reset = host.querySelector('.wd-viewport .wd-reset');
+    expect(reset?.tagName).toBe('A');
+    expect(host.querySelector('.wd-viewport .wd-export')).not.toBeNull();
+    const toggle = host.querySelector('.wd-switch input') as HTMLInputElement;
+    expect(toggle.getAttribute('role')).toBe('switch');
+    expect(toggle.checked).toBe(false);
+    expect(host.querySelector('.wd-view-caption.wd-view-active')!.textContent).toBe('Schematic');
+    widget.destroy();
   });
   it('does not render assembly notes or a bill of materials in the widget chrome', () => {
     const host = document.createElement('div');

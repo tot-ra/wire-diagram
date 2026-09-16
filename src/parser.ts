@@ -9,7 +9,25 @@ const GRID_COLS = 3;
 const GRID_SPACING_X = 90;
 const GRID_SPACING_Z = 70;
 
-const MODEL_KINDS = ['board', 'esp32', 'hx711', 'load-cell', 'probe', 'resistor', 'power'] as const;
+const MODEL_KINDS = [
+  'board',
+  'esp32',
+  'hx711',
+  'load-cell',
+  'probe',
+  'resistor',
+  'power',
+  'jetson',
+  'camera',
+  'lens',
+  'ssd',
+  'wifi',
+  'display',
+  'mount',
+  'extrusion',
+  'cover',
+  'antenna',
+] as const;
 
 export class DiagramParseError extends Error {
   constructor(message: string) {

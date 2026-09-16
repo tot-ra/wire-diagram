@@ -35,21 +35,31 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
   const heading = element('div', 'wd-heading');
   const title = element('h2');
   heading.append(title);
-  const controls = element('div', 'wd-controls');
-  const b2d = element('button', '', 'Schematic');
-  const b3d = element('button', '', '3D');
-  const reset = element('button', '', 'Reset');
-  const exportButton = element('button', '', 'Export SVG');
-  for (const b of [b2d, b3d, reset, exportButton]) b.type = 'button';
-  controls.append(b2d, b3d, reset, exportButton);
-  toolbar.append(heading, controls);
+  toolbar.append(heading);
   const body = element('div', 'wd-body');
   const viewport = element('div', 'wd-viewport');
   const stage = element('div', 'wd-stage');
   const tooltip = element('div', 'wd-tooltip');
   tooltip.hidden = true;
-  viewport.append(stage, tooltip);
+  const canvasTools = element('div', 'wd-canvas-tools');
+  const viewSwitch = element('div', 'wd-view-switch');
+  const label2d = element('span', 'wd-view-caption', 'Schematic');
+  const switchWrap = element('label', 'wd-switch');
+  const viewToggle = element('input');
+  viewToggle.type = 'checkbox';
+  viewToggle.setAttribute('role', 'switch');
+  viewToggle.setAttribute('aria-label', '3D view');
+  switchWrap.append(viewToggle, element('span', 'wd-switch-track'));
+  const label3d = element('span', 'wd-view-caption', '3D');
+  viewSwitch.append(label2d, switchWrap, label3d);
+  const reset = element('a', 'wd-reset', 'Reset');
+  reset.href = '#';
+  canvasTools.append(viewSwitch, reset);
+  const exportButton = element('button', 'wd-export', 'Export SVG');
+  exportButton.type = 'button';
+  viewport.append(stage, tooltip, canvasTools, exportButton);
   const inspector = element('aside', 'wd-inspector');
+  inspector.hidden = true;
   inspector.setAttribute('aria-label', 'Connection inspector');
   inspector.setAttribute('aria-live', 'polite');
   body.append(viewport, inspector);
@@ -72,6 +82,12 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
   }
   function inspect() {
     inspector.replaceChildren();
+    // Keep the select/details sidebar out of the way until a part is chosen on the canvas.
+    if (!selected) {
+      inspector.hidden = true;
+      return;
+    }
+    inspector.hidden = false;
     const c = diagram.components.find(c => c.id === selected);
     const w = diagram.wires.find(w => w.id === selected);
     if (c) {
@@ -117,7 +133,9 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
     const token = ++generation;
     currentView = mode;
     view?.destroy(); view = undefined; stage.replaceChildren(); tooltip.hidden = true;
-    b2d.setAttribute('aria-pressed', String(mode === '2d')); b3d.setAttribute('aria-pressed', String(mode === '3d'));
+    viewToggle.checked = mode === '3d';
+    label2d.classList.toggle('wd-view-active', mode === '2d');
+    label3d.classList.toggle('wd-view-active', mode === '3d');
     status.textContent = '';
     if (mode === '2d') view = createSVGView(stage, diagram, callbacks);
     else {
@@ -149,9 +167,13 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
     exportSVG: () => renderSVG(diagram),
     destroy() { if (disposed) return; disposed = true; generation++; view?.destroy(); root.remove(); },
   };
-  b2d.addEventListener('click', () => void setView('2d'));
-  b3d.addEventListener('click', () => void setView('3d'));
-  reset.addEventListener('click', () => view?.reset());
+  label2d.addEventListener('click', () => void setView('2d'));
+  label3d.addEventListener('click', () => void setView('3d'));
+  viewToggle.addEventListener('change', () => void setView(viewToggle.checked ? '3d' : '2d'));
+  reset.addEventListener('click', event => {
+    event.preventDefault();
+    view?.reset();
+  });
   exportButton.addEventListener('click', () => {
     const url = URL.createObjectURL(new Blob([api.exportSVG()], { type: 'image/svg+xml' }));
     const link = element('a'); link.href = url; link.download = 'wiring-diagram.svg'; link.click();

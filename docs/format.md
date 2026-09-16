@@ -20,7 +20,7 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `kind` | `board` | `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power` |
+| `kind` | `board` | `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `jetson`, `camera`, `lens`, `ssd`, `wifi`, `display`, `mount`, `extrusion`, `cover`, `antenna` |
 | `pins` | `[]` | Contact definitions below |
 | `dimensions` | `[40, 3, 25]` | Approximate body width X, height Y, depth Z in mm; positive finite numbers |
 | `position` | grid | Component origin `[x,y,z]` in mm, Y up |

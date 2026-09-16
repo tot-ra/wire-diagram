@@ -98,8 +98,8 @@ See [format reference](docs/format.md), [decisions](docs/decisions.md).
 - YAML or JavaScript input with schema validation, duplicate/reference checks, safe URLs and bounded YAML aliases.
 - SVG component boxes, explicit contacts, groups, colored/dashed wires, pan/zoom, keyboard selection, SVG export.
 - Orbit/zoom 3D with wire hover/picking, component labels, pin markers, optional external GLB/glTF models, lazy loading and cleanup.
-- Illustrative built-in ESP32, HX711, load-cell, probe, resistor, power and generic board models.
-- Shared inspector, keyboard-accessible selection list and purchase links.
+- Illustrative built-in ESP32, HX711, load-cell, probe, resistor, power, Jetson, USB camera, lens, SSD, WiFi, display, mount, extrusion, cover, antenna and generic board models.
+- Inspector appears after selecting a component or wire, with a selection list and purchase links.
 - Multiple independent instances and explicit `update` / `destroy` lifecycle.
 
 ## Accuracy and current limitations

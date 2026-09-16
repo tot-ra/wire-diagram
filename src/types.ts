@@ -1,6 +1,23 @@
 /** Physical coordinates and dimensions are millimetres; Y is up in 3D. */
 export type Vec3 = [number, number, number];
-export type ModelKind = 'board' | 'esp32' | 'hx711' | 'load-cell' | 'probe' | 'resistor' | 'power';
+export type ModelKind =
+  | 'board'
+  | 'esp32'
+  | 'hx711'
+  | 'load-cell'
+  | 'probe'
+  | 'resistor'
+  | 'power'
+  | 'jetson'
+  | 'camera'
+  | 'lens'
+  | 'ssd'
+  | 'wifi'
+  | 'display'
+  | 'mount'
+  | 'extrusion'
+  | 'cover'
+  | 'antenna';
 export interface Pin { id: string; label?: string; side: 'left' | 'right'; position?: Vec3; voltage?: number; }
 export interface Component {
   id: string; label: string; kind: ModelKind; group?: string; notes?: string;
