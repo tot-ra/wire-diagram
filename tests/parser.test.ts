@@ -1,0 +1,231 @@
+import { describe, expect, it } from 'vitest';
+import { DiagramParseError, getBom, parseDiagram } from '../src/parser.js';
+
+const minimalYaml = `
+version: 1
+title: Test bench
+components:
+  - id: board-a
+    label: Board A
+    pins:
+      - id: VCC
+      - id: GND
+        side: right
+wires:
+  - id: w1
+    from: board-a.VCC
+    to: board-a.GND
+`;
+
+describe('parseDiagram', () => {
+  it('parses YAML with defaults', () => {
+    const diagram = parseDiagram(minimalYaml);
+    expect(diagram.version).toBe(1);
+    expect(diagram.groups).toEqual([]);
+    expect(diagram.notes).toEqual([]);
+    expect(diagram.components[0].kind).toBe('board');
+    expect(diagram.components[0].dimensions).toEqual([40, 3, 25]);
+    expect(diagram.components[0].quantity).toBe(1);
+    expect(diagram.components[0].position).toEqual([0, 0, 0]);
+    expect(diagram.components[0].pins[0].side).toBe('left');
+    expect(diagram.wires[0].color).toBe('#475569');
+  });
+
+  it('accepts plain objects', () => {
+    const diagram = parseDiagram({
+      version: 1,
+      title: 'Obj',
+      components: [{ id: 'r1', label: 'R1', pins: [{ id: 'E+' }, { id: 'E-' }] }],
+      wires: [],
+    });
+    expect(diagram.components[0].pins.map((p) => p.id)).toEqual(['E+', 'E-']);
+  });
+
+  it('rejects non-version-1 documents', () => {
+    expect(() =>
+      parseDiagram({ version: 2, title: 'x', components: [], wires: [] }),
+    ).toThrow(DiagramParseError);
+  });
+
+  it('rejects duplicate ids across components and wires', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'dup',
+        components: [{ id: 'same', label: 'A', pins: [] }],
+        wires: [{ id: 'same', from: 'a.p1', to: 'a.p2' }],
+      }),
+    ).toThrow(/Duplicate id/);
+  });
+
+  it('rejects duplicate pin ids', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'dup pin',
+        components: [{ id: 'c1', label: 'C', pins: [{ id: 'p1' }, { id: 'p1' }] }],
+        wires: [],
+      }),
+    ).toThrow(/Duplicate pin id/);
+  });
+
+  it('rejects unknown group references', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'group',
+        groups: [],
+        components: [{ id: 'c1', label: 'C', group: 'missing', pins: [] }],
+        wires: [],
+      }),
+    ).toThrow(/Unknown group/);
+  });
+
+  it('rejects unknown wire endpoints', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'wire',
+        components: [{ id: 'c1', label: 'C', pins: [{ id: 'p1' }] }],
+        wires: [{ id: 'w1', from: 'c1.p1', to: 'c1.missing' }],
+      }),
+    ).toThrow(/Unknown pin/);
+  });
+
+  it('rejects component ids containing dots', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'bad id',
+        components: [{ id: 'bad.id', label: 'X', pins: [] }],
+        wires: [],
+      }),
+    ).toThrow(/dots/);
+  });
+
+  it('rejects non-positive dimensions', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'dim',
+        components: [{ id: 'c1', label: 'C', dimensions: [0, 3, 25], pins: [] }],
+        wires: [],
+      }),
+    ).toThrow(DiagramParseError);
+  });
+
+  it('rejects unsafe purchase URLs', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'purchase',
+        components: [
+          {
+            id: 'c1',
+            label: 'C',
+            pins: [],
+            purchase: { url: 'javascript:alert(1)' },
+          },
+        ],
+        wires: [],
+      }),
+    ).toThrow(/http/);
+  });
+
+  it('rejects unsafe model URLs', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'model',
+        components: [
+          {
+            id: 'c1',
+            label: 'C',
+            pins: [],
+            model: { url: 'data:application/octet-stream;base64,abc', scale: 1 },
+          },
+        ],
+        wires: [],
+      }),
+    ).toThrow(/Model URL/);
+  });
+
+  it('allows safe relative model URLs', () => {
+    const diagram = parseDiagram({
+      version: 1,
+      title: 'model',
+      components: [
+        {
+          id: 'c1',
+          label: 'C',
+          pins: [],
+          model: { url: './models/board.glb', scale: 1.2 },
+        },
+      ],
+      wires: [],
+    });
+    expect(diagram.components[0].model?.url).toBe('./models/board.glb');
+  });
+
+  it('rejects model URLs with backslashes', () => {
+    expect(() =>
+      parseDiagram({
+        version: 1,
+        title: 'model',
+        components: [
+          {
+            id: 'c1',
+            label: 'C',
+            pins: [],
+            model: { url: 'models\\evil.glb', scale: 1 },
+          },
+        ],
+        wires: [],
+      }),
+    ).toThrow(/Model URL/);
+  });
+
+  it('bounds YAML alias expansion', () => {
+    const refs = Array.from({ length: 100 }, (_, i) => `extra${i}: *node`).join('\n');
+    const yaml = `version: 1\ntitle: aliases\ncomponents: []\nwires: []\nnode: &node [1]\n${refs}`;
+    expect(() => parseDiagram(yaml)).toThrow(/alias/i);
+  });
+});
+
+describe('getBom', () => {
+  it('returns component-derived lines', () => {
+    const diagram = parseDiagram({
+      version: 1,
+      title: 'bom',
+      components: [
+        {
+          id: 'hx',
+          label: 'Load amp',
+          kind: 'hx711',
+          quantity: 2,
+          purchase: { url: 'https://example.com/part', partNumber: 'HX711', label: 'Shop' },
+          pins: [],
+        },
+      ],
+      wires: [],
+    });
+    expect(getBom(diagram)).toEqual([
+      {
+        componentId: 'hx',
+        label: 'Load amp',
+        kind: 'hx711',
+        quantity: 2,
+        partNumber: 'HX711',
+        purchaseUrl: 'https://example.com/part',
+        purchaseLabel: 'Shop',
+        group: undefined,
+      },
+    ]);
+  });
+});
+
+it('rejects misspelled fields, dotted pins and unsafe paint values', () => {
+  expect(() => parseDiagram({version:1,title:'x',wire:[]})).toThrow();
+  expect(() => parseDiagram({version:1,title:'x',components:[{id:'a',label:'A',pins:[{id:'p.q'}]}]})).toThrow();
+  expect(() => parseDiagram({version:1,title:'x',groups:[{id:'a',label:'A',color:'url(https://example.com/paint.svg#x)'}]})).toThrow();
+});

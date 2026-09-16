@@ -1,0 +1,43 @@
+{
+  "name": "wire-diagram",
+  "version": "0.1.0",
+  "description": "Text-driven SVG and 3D wiring diagrams for the web",
+  "type": "module",
+  "files": [
+    "dist",
+    "examples/beehive.yaml"
+  ],
+  "main": "./dist/wire-diagram.js",
+  "module": "./dist/wire-diagram.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/wire-diagram.js"
+    },
+    "./style.css": "./dist/wire-diagram.css"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build && tsc --emitDeclarationOnly",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build:demo": "vite build --config vite.demo.config.ts",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "three": "^0.180.0",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
