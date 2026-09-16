@@ -91,7 +91,7 @@ wires:
     gaugeAwg: 26
 ```
 
-See [format reference](docs/format.md), [decisions](docs/decisions.md), and [Gratheon integration](docs/gratheon-integration.md).
+See [format reference](docs/format.md), [decisions](docs/decisions.md).
 
 ## Included in 0.1
 
