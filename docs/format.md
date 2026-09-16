@@ -20,7 +20,7 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `kind` | `board` | `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `jetson`, `camera`, `lens`, `ssd`, `wifi`, `display`, `mount`, `extrusion`, `cover`, `antenna` |
+| `kind` | `board` | Built-in: `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `jetson`, `camera`, `lens`, `ssd`, `wifi`, `display`, `mount`, `extrusion`, `cover`, `antenna`. Any other lowercase kebab-case id is valid YAML; 3D uses a registered model or the generic board fallback. |
 | `pins` | `[]` | Contact definitions below |
 | `dimensions` | `[40, 3, 25]` | Approximate body width X, height Y, depth Z in mm; positive finite numbers |
 | `position` | grid | Component origin `[x,y,z]` in mm, Y up |
@@ -57,6 +57,47 @@ model:
 - The glTF origin is placed at the component origin. There is no automatic recentering or scaling to `dimensions`.
 - Pin coordinates must already be expressed in the **post-scale, post-rotation component-local frame**. Model transforms apply to the mesh only, not the pin definitions. Component `position` is then added to both.
 - Failure keeps the built-in fallback and shows a status message. Authors must verify mesh provenance, license, size, alignment and pin coordinates.
+
+## Custom 3D models (code)
+
+Built-in silhouettes live under `src/models/builtin/`. Third parties add their own files and register them. Registration is last-write-wins. Widget-local `models` win over the global registry for that widget only.
+
+```ts
+import { addMesh, createWiringDiagram, registerModel } from 'wire-diagram';
+import type { ModelDefinition } from 'wire-diagram';
+import 'wire-diagram/style.css';
+
+const loadCell20kg: ModelDefinition = {
+  kind: 'custom-cell',
+  hidePinMarkers: true,
+  build(THREE, component) {
+    const group = new THREE.Group();
+    const body = addMesh(
+      THREE,
+      group,
+      new THREE.BoxGeometry(...component.dimensions),
+      new THREE.MeshStandardMaterial({ color: '#c5ccd3', metalness: 0.85, roughness: 0.28 }),
+    );
+    body.name = 'custom-cell-body';
+    return { group, meshes: [body] };
+  },
+  resolvePinPosition(component, pin, { index, count }) {
+    const x = pin.side === 'left' ? -component.dimensions[0] / 2 : component.dimensions[0] / 2;
+    return [x, component.dimensions[1] / 2, ((index + 1) / (count + 1) - 0.5) * component.dimensions[2]];
+  },
+};
+
+registerModel(loadCell20kg);
+
+const widget = createWiringDiagram(container, yamlText, {
+  view: '3d',
+  models: [loadCell20kg], // optional; scoped to this widget
+});
+```
+
+Call `registerModel` before the first 3D view if you replace a built-in kind. The 3D chunk will not overwrite an already registered kind. Unknown kinds still parse and fall back to the generic board silhouette.
+
+`addMesh` applies shadow flags and optional local position/rotation. Coordinates stay millimetres, Y up. Pin markers are skipped when `hidePinMarkers` is true.
 
 ## Demo electrical decisions
 

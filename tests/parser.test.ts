@@ -237,6 +237,27 @@ it('accepts Entrance Observer product kinds', () => {
   expect(diagram.components.map((c) => c.kind)).toEqual(['jetson', 'camera']);
 });
 
+it('accepts third-party kebab-case kinds', () => {
+  const diagram = parseDiagram({
+    version: 1,
+    title: 'custom',
+    components: [{ id: 'cell', label: 'Cell', kind: 'custom-cell', pins: [{ id: 'SIG' }] }],
+    wires: [],
+  });
+  expect(diagram.components[0].kind).toBe('custom-cell');
+});
+
+it('rejects kinds that are not lowercase kebab-case', () => {
+  expect(() =>
+    parseDiagram({
+      version: 1,
+      title: 'bad kind',
+      components: [{ id: 'cell', label: 'Cell', kind: 'CustomCell', pins: [] }],
+      wires: [],
+    }),
+  ).toThrow(/kebab-case/);
+});
+
 it('rejects misspelled fields, dotted pins and unsafe paint values', () => {
   expect(() => parseDiagram({version:1,title:'x',wire:[]})).toThrow();
   expect(() => parseDiagram({version:1,title:'x',components:[{id:'a',label:'A',pins:[{id:'p.q'}]}]})).toThrow();

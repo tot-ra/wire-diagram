@@ -9,25 +9,10 @@ const GRID_COLS = 3;
 const GRID_SPACING_X = 90;
 const GRID_SPACING_Z = 70;
 
-const MODEL_KINDS = [
-  'board',
-  'esp32',
-  'hx711',
-  'load-cell',
-  'probe',
-  'resistor',
-  'power',
-  'jetson',
-  'camera',
-  'lens',
-  'ssd',
-  'wifi',
-  'display',
-  'mount',
-  'extrusion',
-  'cover',
-  'antenna',
-] as const;
+/** Lowercase kebab-case so YAML kinds match registerModel() ids. */
+const MODEL_KIND = z
+  .string()
+  .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'kind must be a lowercase kebab-case identifier');
 
 export class DiagramParseError extends Error {
   constructor(message: string) {
@@ -96,7 +81,7 @@ const pinInputSchema = z.strictObject({
 const componentInputSchema = z.strictObject({
   id: componentId,
   label: z.string().min(1),
-  kind: z.enum(MODEL_KINDS).optional(),
+  kind: MODEL_KIND.optional(),
   group: z.string().optional(),
   notes: z.string().optional(),
   dimensions: vec3Positive.optional(),

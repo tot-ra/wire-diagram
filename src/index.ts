@@ -1,12 +1,23 @@
 import { parseDiagram } from './parser.js';
 import { createSVGView, renderSVG } from './svg.js';
+import type { ModelDefinition } from './models/types.js';
 import type { Diagram, ViewHandle } from './types.js';
+import { BUILTIN_MODEL_KINDS } from './types.js';
 import './style.css';
 
 export { parseDiagram, getBom, DiagramParseError } from './parser.js';
 export { renderSVG } from './svg.js';
 export type * from './types.js';
-export interface WidgetOptions { view?: '2d' | '3d'; }
+export { BUILTIN_MODEL_KINDS };
+export { addMesh, cssColor } from './models/helpers.js';
+export { localPinPosition } from './models/layout.js';
+export { getRegisteredModel, registerModel, unregisterModel } from './models/registry.js';
+export type { ModelBuildResult, ModelDefinition, PinLayoutContext, ThreeModule } from './models/types.js';
+export interface WidgetOptions {
+  view?: '2d' | '3d';
+  /** Extra or replacement 3D models for this widget only; they win over the global registry. */
+  models?: readonly ModelDefinition[];
+}
 export interface WiringWidget {
   update(source: unknown): void;
   setView(view: '2d' | '3d'): Promise<void>;
@@ -143,7 +154,10 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
       try {
         const { create3DView } = await import('./view3d.js');
         if (disposed || token !== generation) return;
-        view = create3DView(stage, diagram, { ...callbacks, onError: message => { if (token === generation) callbacks.onError(message); } });
+        view = create3DView(stage, diagram, {
+          ...callbacks,
+          onError: message => { if (token === generation) callbacks.onError(message); },
+        }, { models: options.models });
       } catch (error) {
         if (disposed || token !== generation) return;
         stage.replaceChildren(element('p', 'wd-loading', '3D could not start. The schematic is still available.'));

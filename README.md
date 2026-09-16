@@ -98,7 +98,7 @@ See [format reference](docs/format.md), [decisions](docs/decisions.md).
 - YAML or JavaScript input with schema validation, duplicate/reference checks, safe URLs and bounded YAML aliases.
 - SVG component boxes, explicit contacts, groups, colored/dashed wires, pan/zoom, keyboard selection, SVG export.
 - Orbit/zoom 3D with wire hover/picking, component labels, pin markers, optional external GLB/glTF models, lazy loading and cleanup.
-- Illustrative built-in ESP32, HX711, load-cell, probe, resistor, power, Jetson, USB camera, lens, SSD, WiFi, display, mount, extrusion, cover, antenna and generic board models.
+- Illustrative built-in ESP32, HX711, load-cell, probe, resistor, power, Jetson, USB camera, lens, SSD, WiFi, display, mount, extrusion, cover, antenna and generic board models. Each lives in `src/models/builtin/`. Third parties can `registerModel` extra kinds or pass `models` into the widget.
 - Inspector appears after selecting a component or wire, with a selection list and purchase links.
 - Multiple independent instances and explicit `update` / `destroy` lifecycle.
 
@@ -110,7 +110,7 @@ See [format reference](docs/format.md), [decisions](docs/decisions.md).
 - Basic grid placement and orthogonal routing are not a general obstacle-avoiding router. Dense diagrams may overlap or hide portions of routes behind other components. Use explicit `schematic` positions and inspect endpoint names. Crossing lines do not imply a connection; only shared endpoint references do.
 - Physical wires are visual curves, not constrained to declared cut length, bend radius or collision avoidance. `lengthMm`, `gaugeAwg`, `voltage`, and `net` are metadata; `diameterMm` controls 3D thickness. `dashed` applies only to SVG. A shared `net` label does not electrically connect separate endpoints or highlight the entire net.
 - A component quantity is a procurement count, not repeated physical instances. Use separate component IDs for separately wired parts. BOM lists components; wires/connectors/tools are not automatically aggregated.
-- External models need correct origins, rotations, scale, and author-defined anchors. No STEP import, compressed model decoder setup, model catalog, or asset-license verification is included. Use plain GLB/glTF and trusted asset hosts with CORS.
+- External GLB/glTF models need correct origins, rotations, scale, and author-defined anchors. Custom procedural kinds use `registerModel` or widget `models`; unknown YAML kinds fall back to the generic board. No STEP import, compressed model decoder setup, model catalog, or asset-license verification is included. Use plain GLB/glTF and trusted asset hosts with CORS.
 - YAML is a new versioned format, not Mermaid or WireViz compatibility. Unknown fields are rejected; use `properties` for component metadata.
 - Modern browsers with ES modules are required; 3D needs WebGL2. The SVG view works without WebGL. Tests mock GPU initialization; actual 3D appearance and browser interaction remain unverified after the user's request to stop browser checks.
 - SVG uses embedded styles and the widget uses inline positioning/styles; restrictive CSP configurations need an explicit integration review. Serve user-supplied YAML only within appropriate size/resource limits and trust boundaries.
