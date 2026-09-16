@@ -953,7 +953,7 @@ export function buildWifi(
   return { group, meshes };
 }
 
-/** 7 inch HDMI panel: bezel plus a recessed screen so faces do not z-fight. */
+/** 7 inch HDMI panel standing on Y, screen recessed on +Z so it does not z-fight the bezel. */
 export function buildDisplay(
   THREE: ThreeModule,
   component: Component,
@@ -971,10 +971,11 @@ export function buildDisplay(
   bezel.name = 'display-bezel';
   meshes.push(bezel);
 
+  const screenT = Math.max(d * 0.28, 1.2);
   const screen = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(w * 0.9, h * 0.35, d * 0.86),
+    new THREE.BoxGeometry(w * 0.9, h * 0.86, screenT),
     new THREE.MeshStandardMaterial({
       color: '#2b4c78',
       roughness: 0.18,
@@ -982,7 +983,7 @@ export function buildDisplay(
       emissive: '#163152',
       emissiveIntensity: 0.35,
     }),
-    [0, h / 2 - h * 0.08, 0],
+    [0, 0, d / 2 - screenT * 0.35],
   );
   screen.name = 'display-screen';
   meshes.push(screen);
@@ -990,9 +991,9 @@ export function buildDisplay(
   const hdmi = addMesh(
     THREE,
     group,
-    new THREE.BoxGeometry(8, 3.2, 12),
+    new THREE.BoxGeometry(8, 3.2, Math.min(d, 8)),
     new THREE.MeshStandardMaterial({ color: '#8d6e2f', roughness: 0.4, metalness: 0.55 }),
-    [-w / 2 + 4, 0, 0],
+    [-w / 2 + 4, -h / 2 + 4, 0],
   );
   hdmi.name = 'display-hdmi';
   meshes.push(hdmi);

@@ -8,6 +8,7 @@ import {
   buildCamera,
   buildLens,
   buildSsd,
+  buildDisplay,
   buildLoadCell,
   buildPowerBlock,
   buildProbe,
@@ -360,6 +361,22 @@ describe('view3d helpers', () => {
     const gold = meshes.find((mesh) => mesh.name === 'ssd-gold')!;
     expect(meshes.find((mesh) => mesh.name === 'ssd-body')).toBeTruthy();
     expect(gold.position.x).toBeLessThan(0);
+  });
+
+  it('builds a standing HDMI panel with the screen on +Z', () => {
+    const component = {
+      id: 'display',
+      label: 'Panel',
+      kind: 'display' as const,
+      dimensions: [165, 100, 8] as [number, number, number],
+      position: [0, 0, 0] as [number, number, number],
+      quantity: 1,
+      pins: [],
+    };
+    const { meshes } = buildDisplay(THREE, component);
+    const screen = meshes.find((mesh) => mesh.name === 'display-screen')!;
+    expect(meshes.find((mesh) => mesh.name === 'display-bezel')).toBeTruthy();
+    expect(screen.position.z).toBeGreaterThan(0);
   });
 });
 
