@@ -1,3 +1,4 @@
+import { resolvePhysicalPinNumber } from '../../pinouts.js';
 import type { Component, Pin, Vec3 } from '../../types.js';
 import { addMesh } from '../helpers.js';
 import {
@@ -675,71 +676,6 @@ function normalizePinId(id: string): string {
   return id.trim().toUpperCase().replace(/[\s_\-]+/g, '');
 }
 
-/** BCM GPIO n -> physical header pin. `GPIO2` is SDA (pin 3), not physical pin 2. */
-const BCM_TO_HEADER: Record<number, number> = {
-  0: 27,
-  1: 28,
-  2: 3,
-  3: 5,
-  4: 7,
-  5: 29,
-  6: 31,
-  7: 26,
-  8: 24,
-  9: 21,
-  10: 19,
-  11: 23,
-  12: 32,
-  13: 33,
-  14: 8,
-  15: 10,
-  16: 36,
-  17: 11,
-  18: 12,
-  19: 35,
-  20: 38,
-  21: 40,
-  22: 15,
-  23: 16,
-  24: 18,
-  25: 22,
-  26: 37,
-  27: 13,
-};
-
-/** 40-pin header numbers, 1 at USB-C, odd pins on the board-edge (+Z) row. */
-function gpioHeaderPinNumber(key: string): number | undefined {
-  const physical = key.match(/^PIN(\d{1,2})$/);
-  if (physical) {
-    const n = Number(physical[1]);
-    if (n >= 1 && n <= 40) return n;
-  }
-  const bcm = key.match(/^(?:GP|GPIO|BCM)(\d{1,2})$/);
-  if (bcm) return BCM_TO_HEADER[Number(bcm[1])];
-  const aliases: Record<string, number> = {
-    '3V3': 1,
-    '3.3V': 1,
-    '3V': 1,
-    SDA: 3,
-    SCL: 5,
-    TX: 8,
-    TXD: 8,
-    RX: 10,
-    RXD: 10,
-    MOSI: 19,
-    MISO: 21,
-    SCLK: 23,
-    SCK: 23,
-    CE0: 24,
-    CE1: 26,
-    IDSD: 27,
-    IDSC: 28,
-  };
-  if (key === '5V' || key === 'VCC' || key === 'VDD') return 2;
-  if (key === 'GND' || key === 'GROUND') return 6;
-  return aliases[key];
-}
-
 function gpioPinXZ(center: Vec3, pinNumber: number): { x: number; z: number } {
   const clamped = Math.max(1, Math.min(40, pinNumber));
   const column = Math.floor((clamped - 1) / 2);
@@ -794,7 +730,13 @@ export function resolveRaspberryPiPinPosition(
   const key = normalizePinId(pin.id);
   const tipY = raspberryPiPinTipY(component);
 
+  const physical = resolvePhysicalPinNumber(component, pin);
   if (variant === 'pico') {
+    if (physical !== undefined) {
+      const index = physical <= 20 ? physical - 1 : 40 - physical;
+      const z = (physical <= 20 ? -1 : 1) * (d / 2 - HEADER_PITCH_MM / 2);
+      return [headerColumnOffset(index, 20), tipY, z];
+    }
     if (key === 'USB' || key === 'VBUS' || key === '5V') {
       return [-w / 2, portY(pcbH, MICRO_USB_MM.height), 0];
     }
@@ -805,7 +747,7 @@ export function resolveRaspberryPiPinPosition(
   }
 
   const gpioCenter = gpioHeaderCenter(component);
-  const gpioN = gpioHeaderPinNumber(key);
+  const gpioN = physical;
   if (gpioN !== undefined) {
     const at = gpioPinXZ(gpioCenter, gpioN);
     return [at.x, tipY, at.z];

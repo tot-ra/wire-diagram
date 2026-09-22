@@ -93,12 +93,30 @@ wires:
 
 See [format reference](docs/format.md), [decisions](docs/decisions.md).
 
+## Connect by physical pin or GPIO
+
+Supported board models share a pinout map with the parser and both views. For example, `pi.PIN7` (or `pi.7`) and `pi.GPIO4` address the same Raspberry Pi contact. No manual coordinates or full pin list are needed:
+
+```yaml
+version: 1
+title: Numbered connection
+components:
+  - { id: pi, label: Raspberry Pi 4, kind: raspberry-pi }
+  - { id: esp, label: ESP32 38-pin DevKit, kind: esp32 }
+wires:
+  - { id: signal, from: pi.PIN7, to: esp.GPIO16 }
+```
+
+For a named endpoint use `pins: [{id: data, number: 27, gpio: 16}]` on ESP32. Inspector and schematic show both numbers; 3D wires end at the corresponding header contact. Explicit `position` overrides remain supported. Invalid or conflicting pin identities are rejected.
+
+The existing ESP32 38-pin DevKit and Pi 4/5/Zero/Pico silhouettes are supported. Nano and Orin Nano are separate new builtin models. **Jetson GPIO IDs use Jetson.GPIO BCM mode, not Tegra signal names.** ESP32 physical numbering is a documented J2/J3 library convention, not module pad numbering. See the [numbering/variant reference](docs/format.md#physical-numbers-and-gpio) and [four-board example](examples/numbered-pins.yaml). Verify actual hardware; these are not assembly specifications.
+
 ## Included in 0.1
 
 - YAML or JavaScript input with schema validation, duplicate/reference checks, safe URLs and bounded YAML aliases.
 - SVG component boxes, explicit contacts, groups, colored/dashed wires, pan/zoom, keyboard selection, SVG export.
 - Orbit/zoom 3D with wire hover/picking, component labels, pin markers, optional external GLB/glTF models, lazy loading and cleanup.
-- Illustrative built-in models for lab boards, AliExpress-style sensors (`max4466`, `max9814`, `ds18b20`), I2C character LCDs (`lcd1602`, `lcd2004`), Raspberry Pi versions, Arduino UNO R3 (`arduino-uno`), barrel/JST connectors, stepper motor/driver, LEDs, and a generic board. Each lives in `src/models/builtin/`. Product-specific silhouettes (Jetson, USB camera, HDMI panel, enclosure) are registered by the host with `registerModel` or widget `models`.
+- Illustrative built-in models for lab boards, AliExpress-style sensors (`max4466`, `max9814`, `ds18b20`), I2C character LCDs (`lcd1602`, `lcd2004`), Raspberry Pi versions, Jetson Nano (`jetson-nano`), Jetson Orin Nano (`jetson-orin-nano`), Arduino UNO R3 (`arduino-uno`), barrel/JST connectors, stepper motor/driver, LEDs, and a generic board. Each lives in `src/models/builtin/`. Other product-specific silhouettes (USB camera, HDMI panel, enclosure) are registered by the host with `registerModel` or widget `models`.
 - Inspector appears after selecting a component or wire, with a selection list and purchase links.
 - Multiple independent instances and explicit `update` / `destroy` lifecycle.
 

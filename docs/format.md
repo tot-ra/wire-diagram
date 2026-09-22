@@ -20,9 +20,10 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `kind` | `board` | Built-in: `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `max4466`, `max9814`, `ds18b20`, `lcd1602`, `lcd2004`, `raspberry-pi`, `barrel-jack`, `jst-connector`, `stepper-motor`, `stepper-driver`, `led`, `status-led`, `arduino-uno`. Any other lowercase kebab-case id is valid YAML; 3D uses a registered model or the generic board fallback. `esp32` is a 38-pin USB-C ESP32-WROOM-32 DevKit clone (dual 19-pin males, EN/BOOT, CH340, AMS1117). `raspberry-pi` uses `properties.variant` (`4`, `5`, `zero`, `pico`). Pi 4 is the 85 x 56 mm Model B silhouette (USB-C, dual micro-HDMI, TRRS, stacked USB-A, magjack). Waterproof DS18B20 is `probe`; the 3-pin PCB module is `ds18b20`. Character LCDs (`lcd1602`, `lcd2004`) are flat I2C modules with glass on +Y. Product silhouettes such as Jetson, USB camera, HDMI panel, extrusion and cover are registered by the host with `registerModel` or widget `models`. `arduino-uno` is the UNO R3 development board (USB-B, DC jack, DIP ATmega328P, female headers). |
-| `pins` | `[]` | Contact definitions below |
-| `dimensions` | `[40, 3, 25]` | Approximate body width X, height Y, depth Z in mm; positive finite numbers |
+| `kind` | `board` | Built-in: `board`, `esp32`, `hx711`, `load-cell`, `probe`, `resistor`, `power`, `max4466`, `max9814`, `ds18b20`, `lcd1602`, `lcd2004`, `raspberry-pi`, `jetson-nano`, `jetson-orin-nano`, `barrel-jack`, `jst-connector`, `stepper-motor`, `stepper-driver`, `led`, `status-led`, `arduino-uno`. Any other lowercase kebab-case id is valid YAML; 3D uses a registered model or the generic board fallback. `esp32` is a 38-pin USB-C ESP32-WROOM-32 DevKit clone (dual 19-pin males, EN/BOOT, CH340, AMS1117). `raspberry-pi` uses `properties.variant` (`4`, `5`, `zero`, `pico`). Pi 4 is the 85 x 56 mm Model B silhouette (USB-C, dual micro-HDMI, TRRS, stacked USB-A, magjack). Waterproof DS18B20 is `probe`; the 3-pin PCB module is `ds18b20`. Character LCDs (`lcd1602`, `lcd2004`) are flat I2C modules with glass on +Y. Other product silhouettes such as USB camera, HDMI panel, extrusion and cover are registered by the host with `registerModel` or widget `models`. `arduino-uno` is the UNO R3 development board (USB-B, DC jack, DIP ATmega328P, female headers). |
+| `pins` | `[]` | Contact definitions below; referenced builtin contacts are created automatically |
+| `pinout` | inferred from kind/variant | Explicit pinout profile, see below |
+| `dimensions` | board profile, otherwise `[40, 3, 25]` | Approximate body width X, height Y, depth Z in mm; positive finite numbers |
 | `position` | grid | Component origin `[x,y,z]` in mm, Y up |
 | `schematic` | grid | Independent SVG top-left `[x,y]`; negative coordinates supported |
 | `color` | renderer default | SVG box color; some built-in models have their own material colors |
@@ -33,7 +34,52 @@ Required: `id` and `label`. Component and wire IDs share one namespace. IDs and 
 | `purchase` | none | `{url, label?, partNumber?}`; http(s) only |
 | `model` | none | External model descriptor below |
 
-Pins require `id`. Optional fields: `label`, `side` (`left` by default or `right`), `position` (local `[x,y,z]` in mm), `voltage` (nominal metadata). Pin ordering follows document order on each side. When omitted, physical anchors are placed at the left/right body edge and spread over depth, except `kind: esp32`, which defaults to a 19-pin 2.54 mm dual header on the long edges (schematic left -> +Z, right -> -Z), `kind: arduino-uno`, which defaults to UNO R3 female headers (schematic left -> digital +Z, right -> power/analog -Z; named ids such as `D13`, `5V`, `A0` land on the matching socket), and `kind: raspberry-pi`, which lands named ids on the 40-pin header or the matching Pi 4 port (`USB-C`, `HDMI`, `GPIO`, `SDA`). These defaults are not verified hardware pinouts.
+Pins require a string `id`. Optional fields: `label`, `number` (positive integer physical contact), `gpio` (nonnegative integer), `side` (schematic `left`/`right`), `position` (local `[x,y,z]` in mm), `voltage` (nominal metadata). Quote numeric IDs, e.g. `id: '7'`. Numeric *metadata* is unquoted: `number: 7`.
+
+### Physical numbers and GPIO
+
+For a supported board, use `board.PIN7` or `board.7` for physical contact 7, and `board.GPIO4` for GPIO4. `GP4` / `IO4` also address GPIO; `BCM4` is accepted only on BCM profiles. They are not interchangeable numbers: Raspberry Pi `PIN7` is `GPIO4`, while `PIN4` is 5 V. Only referenced pins are created automatically, avoiding an enormous schematic when only two contacts are wired. Explicit `pins` lists can expose extra contacts.
+
+```yaml
+components:
+  - id: pi
+    label: Raspberry Pi 4
+    kind: raspberry-pi
+    properties: { variant: '4' }
+  - id: esp
+    label: ESP32 DevKit
+    kind: esp32
+    pins:
+      - { id: sensor, number: 27, gpio: 16, label: Sensor data }
+wires:
+  - { id: signal, from: pi.PIN7, to: esp.GPIO16 }
+```
+
+Both fields are optional, but when supplied together must identify the same contact. Existing named IDs are preserved: `esp.sensor`, `esp.PIN27`, `esp.27` and `esp.GPIO16` normalize to `esp.sensor`. The parser returns canonical wire endpoints, so aliases share one junction in both SVG and 3D. Re-parsing a normalized `Diagram` is supported. Invalid GPIOs, physical numbers, conflicting identities and duplicate definitions of a physical contact are errors. Define one contact and reference it multiple times instead.
+
+| Kind / variant | Pinout profile | Numbering / default dimensions |
+| --- | --- | --- |
+| `esp32` | `esp32-devkit-38` | WROOM 38-pin DevKitC-compatible dual headers, GPIO numbers; `[52,3,28]` |
+| `raspberry-pi`, variant `4`/`5`/`zero` | `raspberry-pi-40` | Physical 1-40 / BCM GPIO; `[85,18,56]`, Zero `[65,3,30]` |
+| `raspberry-pi`, variant `pico` | `raspberry-pi-pico` | Physical 1-40 / RP2040 GPIO; `[51,3,21]` |
+| `jetson-nano` | `jetson-nano` | Nano developer carrier 40-pin header / **Jetson.GPIO BCM mode**; `[100,18,80]` |
+| `jetson-orin-nano` | `jetson-orin-nano` | Orin Nano developer carrier 40-pin header / **Jetson.GPIO BCM mode**; `[100,18,79]` |
+
+`pinout` can be explicit; a profile incompatible with a built-in kind/variant is rejected. ESP32 defaults to the existing 38-pin WROOM silhouette, not a 30-pin, S2, S3 or C3 board. Pi model variants use the existing `properties.variant` selection (unknown variants retain the historical Pi 4 fallback).
+
+**ESP32 physical numbering convention:** unified library numbers 1-19 are DevKitC J2.1-J2.19, from antenna to USB on -Z; 20-38 are J3.19-J3.1, from USB to antenna on +Z. This is not the ESP32 chip/module pad numbering, and clone silkscreens may differ. GPIO16 = pin 27, GPIO17 = pin 28, GPIO4 = pin 26, 3V3 = pin 1, 5V/VIN = pin 19. Pins GPIO6-11 normally connect to flash; showing them is not a recommendation to use them.
+
+**Pi/Pico orientation:** Pi 40-pin headers have odd contacts on +Z, even contacts on the inner row, pin 1 at the -X end. Pico pins 1-20 run USB to far end on -Z, pins 21-40 run back on +Z; e.g. GPIO0 = pin 1, GPIO28 = pin 34. Physical contact selection never depends on schematic `side` or the order/subset of declared pins.
+
+**Jetson:** GPIO4/BCM4 = physical pin 7 on both carriers. This API does **not** use Tegra CVM labels such as `GPIO09`, Linux GPIO line offsets, or TEGRA_SOC IDs. Special-purpose I2C/UART contacts not exposed as GPIO by Jetson.GPIO are addressed by physical number or signal name, not invented GPIO numbers. Header function/pinmux configuration and logic compatibility are not validated. Orin Nano USB-C is data/recovery only; `POWER`, `DC`, `BARREL`, `VIN` refer to its DC input. Use `PIN2` or `5V` for the header rail instead. Legacy custom `kind: jetson` remains a host extension; select the explicit new kinds for builtin models.
+
+For repeated rails, unqualified `GND`, `3V3` or `5V` defaults to the first matching physical contact. Select the exact one with `PIN9` or `{id: GND, number: 9}`. Ground pins 6 and 9 remain separate physical contacts, even though they are electrically common. Known signal/rail names cannot be reassigned to a different signal, but equivalent rail contacts are allowed.
+
+**3D precedence:** explicit `pin.position` always wins, including on custom GLB/glTF or registered models. Otherwise model resolvers use the physical number to attach the wire to the gold contact tip. Old named/custom contacts without a mapped identity retain the model-specific fallback placement. `side` only affects SVG. `getPinout(component)` exposes the full contact map, and `resolvePhysicalPinNumber(component, pin)` is exported for host model resolvers. A host model can opt into a profile via `pinout` and implement `resolvePinPosition`; custom numbered contacts without a profile require explicit positions. Registration alone does not change parser pinouts.
+
+Models and mappings are illustrative, not verified assembly CAD. Verify your exact carrier/module revision before powering anything. Mapping references: [Espressif DevKitC J2/J3 tables](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html), [Raspberry Pi GPIO](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#gpio), [Pico pinout](https://datasheets.raspberrypi.com/pico/Pico-R3-A4-Pinout.pdf), [NVIDIA Jetson.GPIO numbering tables](https://github.com/NVIDIA/jetson-gpio/blob/master/lib/python/Jetson/GPIO/gpio_pin_data.py).
+
+See [`examples/numbered-pins.yaml`](../examples/numbered-pins.yaml) for all four board families. Paste it into the demo YAML editor and apply to inspect the wires in 3D.
 
 ## Wires and junctions
 

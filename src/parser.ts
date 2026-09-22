@@ -1,5 +1,6 @@
 import YAML from 'yaml';
 import { z } from 'zod';
+import { contactByReference, defaultBoardDimensions, getPinout, inferredPinoutId, isNumberedPinReference, physicalPinSide } from './pinouts.js';
 import type { Component, Diagram, ModelKind, Vec3 } from './types.js';
 
 const MAX_YAML_ALIASES = 64;
@@ -72,6 +73,8 @@ const modelSchema = z.strictObject({
 
 const pinInputSchema = z.strictObject({
   id: pinId,
+  number: finite.int().positive().optional(),
+  gpio: finite.int().nonnegative().optional(),
   label: z.string().optional(),
   side: z.enum(['left', 'right']).optional(),
   position: vec3.optional(),
@@ -82,6 +85,7 @@ const componentInputSchema = z.strictObject({
   id: componentId,
   label: z.string().min(1),
   kind: MODEL_KIND.optional(),
+  pinout: z.enum(['esp32-devkit-38', 'raspberry-pi-40', 'raspberry-pi-pico', 'jetson-nano', 'jetson-orin-nano']).optional(),
   group: z.string().optional(),
   notes: z.string().optional(),
   dimensions: vec3Positive.optional(),
@@ -196,21 +200,91 @@ function assertCrossFieldRules(input: z.infer<typeof diagramInputSchema>): void 
   }
 }
 
-function normalizeDiagram(input: z.infer<typeof diagramInputSchema>): Diagram {
-  assertCrossFieldRules(input);
 
+/** Normalize aliases once, so every view and shared junction use the same endpoint. */
+function normalizePins(components: Component[], inputs: z.infer<typeof componentInputSchema>[]): void {
+  components.forEach((component, index) => {
+    const profile = getPinout(component);
+    const inferred = inferredPinoutId(component);
+    if (component.pinout && inferred && component.pinout !== inferred) {
+      throw new DiagramParseError(`Pinout ${component.pinout} does not match component ${component.id} (${inferred})`);
+    }
+    const usedNumbers = new Set<number>();
+    const usedGpios = new Set<number>();
+    for (const [i, pin] of component.pins.entries()) {
+      if (profile) {
+        const byId = contactByReference(profile, pin.id);
+        const byNumber = pin.number === undefined ? undefined : profile.contacts.find(contact => contact.number === pin.number);
+        const byGpio = pin.gpio === undefined ? undefined : profile.contacts.find(contact => contact.gpio === pin.gpio);
+        if ((pin.number !== undefined && !byNumber) || (pin.gpio !== undefined && !byGpio)
+          || (isNumberedPinReference(pin.id) && !byId)) {
+          throw new DiagramParseError(`Unknown pin number or GPIO on ${component.id}.${pin.id} (${profile.id})`);
+        }
+        const references = [byNumber, byGpio, isNumberedPinReference(pin.id) ? byId : undefined].filter(Boolean);
+        if (references.some(contact => contact!.number !== references[0]!.number)) {
+          throw new DiagramParseError(`Conflicting pin number and GPIO on ${component.id}.${pin.id}`);
+        }
+        const contact = byNumber ?? byGpio ?? byId;
+        // Named rails can select another equivalent contact (e.g. GND pin 9),
+        // but a known name must never silently become a different signal/rail.
+        if (contact && byId && contact.number !== byId.number && contact.name !== byId.name) {
+          throw new DiagramParseError(`Conflicting named pin and number/GPIO on ${component.id}.${pin.id}`);
+        }
+        if (contact) {
+          pin.number = contact.number;
+          pin.gpio = contact.gpio;
+          pin.label ??= contact.name;
+          if (!inputs[index].pins[i].side) pin.side = physicalPinSide(profile, contact.number);
+        }
+      } else if ((pin.number !== undefined || pin.gpio !== undefined) && !pin.position) {
+        throw new DiagramParseError(`Numbered pin ${component.id}.${pin.id} needs a pinout or explicit position`);
+      }
+      if ((pin.number !== undefined && usedNumbers.has(pin.number)) || (pin.gpio !== undefined && usedGpios.has(pin.gpio))) {
+        throw new DiagramParseError(`Duplicate physical pin or GPIO on ${component.id}.${pin.id}; use one pin definition and reference its aliases`);
+      }
+      if (pin.number !== undefined) usedNumbers.add(pin.number);
+      if (pin.gpio !== undefined) usedGpios.add(pin.gpio);
+    }
+  });
+}
+
+function resolveEndpoint(components: Component[], ref: string): string {
+  const endpoint = parseEndpoint(ref);
+  if (!endpoint) return ref; // The cross-field validator supplies the contextual error.
+  const component = components.find(c => c.id === endpoint.componentId);
+  if (!component) return ref;
+  const exact = component.pins.find(pin => pin.id === endpoint.pinId);
+  if (exact) return ref;
+  const profile = getPinout(component);
+  const contact = profile ? contactByReference(profile, endpoint.pinId) : undefined;
+  const physical = endpoint.pinId.match(/^(?:PIN)?(\d+)$/i);
+  const gpio = endpoint.pinId.match(/^(?:GPIO|IO|GP|BCM)(\d+)$/i);
+  const existing = component.pins.find(pin => contact ? pin.number === contact.number
+    : (physical && pin.number === Number(physical[1])) || (gpio && pin.gpio === Number(gpio[1])));
+  if (existing) return `${component.id}.${existing.id}`;
+  if (!contact || !profile) return ref;
+  const pin = { id: `PIN${contact.number}`, number: contact.number, gpio: contact.gpio,
+    label: contact.name, side: physicalPinSide(profile, contact.number) };
+  component.pins.push(pin);
+  return `${component.id}.${pin.id}`;
+}
+
+function normalizeDiagram(input: z.infer<typeof diagramInputSchema>): Diagram {
   const components: Component[] = input.components.map((component, index) => ({
     id: component.id,
     label: component.label,
     kind: (component.kind ?? 'board') as ModelKind,
+    pinout: component.pinout,
     group: component.group,
     notes: component.notes,
-    dimensions: component.dimensions ?? [...DEFAULT_DIMENSIONS],
+    dimensions: component.dimensions ?? defaultBoardDimensions(component) ?? [...DEFAULT_DIMENSIONS],
     position: component.position ?? defaultPosition(index),
     schematic: component.schematic,
     color: component.color,
     pins: component.pins.map((pin) => ({
       id: pin.id,
+      number: pin.number,
+      gpio: pin.gpio,
       label: pin.label,
       side: pin.side ?? 'left',
       position: pin.position,
@@ -222,10 +296,12 @@ function normalizeDiagram(input: z.infer<typeof diagramInputSchema>): Diagram {
     quantity: component.quantity ?? 1,
   }));
 
+  normalizePins(components, input.components);
+
   const wires = input.wires.map((wire) => ({
     id: wire.id,
-    from: wire.from,
-    to: wire.to,
+    from: resolveEndpoint(components, wire.from),
+    to: resolveEndpoint(components, wire.to),
     color: wire.color ?? DEFAULT_WIRE_COLOR,
     label: wire.label,
     net: wire.net,
@@ -236,6 +312,8 @@ function normalizeDiagram(input: z.infer<typeof diagramInputSchema>): Diagram {
     notes: wire.notes,
     dashed: wire.dashed,
   }));
+
+  assertCrossFieldRules({ ...input, components, wires });
 
   return {
     version: 1,

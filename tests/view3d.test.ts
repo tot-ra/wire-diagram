@@ -274,9 +274,9 @@ describe('view3d helpers', () => {
 
     const gnd = localPinPosition(component, component.pins[0]);
     const out = localPinPosition(component, component.pins[1]);
-    expect(gnd[0]).toBeCloseTo(esp32HeaderPinX(0));
+    expect(gnd[0]).toBeCloseTo(esp32HeaderPinX(5)); // GND is physical pin 14, not document slot 0.
     expect(gnd[1]).toBeCloseTo(esp32PinTipY());
-    expect(gnd[2]).toBeCloseTo(esp32HeaderRowZ(28, 'left'));
+    expect(gnd[2]).toBeCloseTo(esp32HeaderRowZ(28, 'right'));
     expect(out[2]).toBeCloseTo(esp32HeaderRowZ(28, 'right'));
     expect(Math.abs(gnd[0])).toBeLessThan(component.dimensions[0] / 2);
   });
@@ -846,4 +846,33 @@ describe('create3DView', () => {
     expect(() => view.reset()).not.toThrow();
     view.destroy();
   });
+});
+
+
+it('renders wire curve ends at numbered pin tops in world coordinates after changing GPIO', async () => {
+  const render = vi.spyOn(THREE.WebGLRenderer.prototype, 'render');
+  try {
+    const host = document.createElement('div');
+    for (const gpio of [4, 17]) {
+      const diagram = parseDiagram({ version: 1, title: 'Numbered wiring', components: [
+        { id: 'pi', label: 'Pi', kind: 'raspberry-pi', position: [11, 12, 13] },
+        { id: 'esp', label: 'ESP', kind: 'esp32', position: [100, 7, -10] },
+      ], wires: [{ id: 'signal', from: `pi.GPIO${gpio}`, to: 'esp.PIN27' }] });
+      render.mockClear();
+      const view = create3DView(host, diagram, { onSelect() {}, onHover() {}, onError: message => { throw new Error(message); } });
+      try {
+        await vi.waitFor(() => expect(render).toHaveBeenCalled());
+        const scene = render.mock.calls.at(-1)![0];
+        const mesh = scene.children.find(child => child.userData.id === 'signal') as THREE.Mesh<THREE.TubeGeometry>;
+        expect(mesh).toBeTruthy();
+        const path = mesh.geometry.parameters.path;
+        for (const [index, t] of [[0, 0], [1, 1]]) {
+          const c = diagram.components[index];
+          const local = localPinPosition(c, c.pins[0]);
+          const expected = new THREE.Vector3(...local).add(new THREE.Vector3(...c.position));
+          expect(path.getPoint(t).distanceTo(expected)).toBeLessThan(0.0001);
+        }
+      } finally { view.destroy(); }
+    }
+  } finally { render.mockRestore(); }
 });

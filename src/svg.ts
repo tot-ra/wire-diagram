@@ -1,3 +1,4 @@
+import { pinDisplayLabel } from './pinouts.js';
 import type { Component, Diagram, Pin, ViewCallbacks, ViewHandle } from './types.js';
 
 const BOX_WIDTH = 230;
@@ -330,7 +331,7 @@ function renderComponent(layout: ComponentLayout, interactive: boolean): string 
   const box = `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="10" fill="${escapeXml(fill)}" stroke="#334155" stroke-width="1.5"${attrs} />`;
 
   const pinParts = layout.pins.map((layoutPin) => {
-    const label = layoutPin.pin.label ?? layoutPin.pin.id;
+    const label = pinDisplayLabel(layoutPin.pin);
     const dotX = layoutPin.x;
     const textAnchor = layoutPin.side === 'left' ? 'start' : 'end';
     const textX = layoutPin.side === 'left' ? layoutPin.x + 10 : layoutPin.x - 10;

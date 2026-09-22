@@ -30,3 +30,10 @@
 - Do not `appendChild` a gallery card onto `document.body` to screenshot it. The IntersectionObserver then unmounts the WebGL widget. Pin the card with `position: fixed` in place, and set `.wd-stage` height with `setProperty(..., 'important')` so the 240px catalog CSS does not win.
 - Three identical numbered region instructions on `?demo=showcase` usually mean three consecutive gallery sections in the viewport, not three isolated cards. Reconstruct from `scroll_y` plus layout: the beehive widget stage is `min(78vh, 960px)`, so around scroll 1725 the next headings are Entrance observer, Enclosure, and Displays. Move only kinds the host actually uses; keep generic LCDs in the library.
 - Adding named exports to the library entry can make Vite emit a hashed shared chunk (`index-*.js`). Vendor every `dist/*.js` sibling, not a hardcoded list of view3d/three/loader files, or the site ESM entry 404s.
+- This project disables indexed file/content search. Use scoped grep or bash searches instead of retrying content_search.
+- When delegating a model that depends on an in-progress pinout API, do not ask the agent to invent a fallback map. Keep board-specific numbering explicit; Jetson.GPIO BCM IDs are not Tegra GPIO signal names.
+
+- Pinout refactors intentionally change named ESP32 anchors from document slots to physical contacts. Update geometry expectations, and update catalog-count fixtures when adding models; cover all contacts, not just one sample.
+- Orin Nano developer kit USB-C is data/recovery, not PD power. Verify carrier-specific power connectors rather than copying a generic Jetson silhouette.
+- Validate named power/signal aliases against explicit pin metadata, while allowing another equivalent rail contact (GND pin 6 vs 9). Numeric-only conflict checks miss mislabeled supply rails.
+- Delegated child session IDs may not be readable through project_session_history. Use the delegation result directly rather than assuming child sessions appear in the project history store.

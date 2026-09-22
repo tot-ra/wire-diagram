@@ -31,14 +31,15 @@ components:
     dimensions: [52, 3, 28]
     position: [-20, 6, 0]
     schematic: [420, 95]
-    properties: { variant: 'ESP32-WROOM development board', logic: '3.3 V only' }
+    pinout: esp32-devkit-38
+    properties: { variant: 'ESP32-WROOM 38-pin DevKit', logic: '3.3 V only' }
     pins:
-      - { id: VIN, label: 'USB / 5 V', side: left, voltage: 5, position: [-22.86, 10.2, 12.73] }
-      - { id: GND, side: left, voltage: 0, position: [-20.32, 10.2, 12.73] }
-      - { id: 3V3, label: '3.3 V', side: right, voltage: 3.3, position: [-22.86, 10.2, -12.73] }
-      - { id: IO16, label: 'GPIO 16 · DT', side: right, position: [-5.08, 10.2, -12.73] }
-      - { id: IO17, label: 'GPIO 17 · SCK', side: right, position: [-2.54, 10.2, -12.73] }
-      - { id: IO4, label: 'GPIO 4 · DQ', side: right, position: [-10.16, 10.2, -12.73] }
+      - { id: VIN, label: 'USB / 5 V', number: 19, side: left, voltage: 5 }
+      - { id: GND, number: 14, side: left, voltage: 0 }
+      - { id: 3V3, label: '3.3 V', number: 1, side: right, voltage: 3.3 }
+      - { id: IO16, label: 'GPIO 16 · DT', gpio: 16, side: right }
+      - { id: IO17, label: 'GPIO 17 · SCK', gpio: 17, side: right }
+      - { id: IO4, label: 'GPIO 4 · DQ', gpio: 4, side: right }
     purchase: { url: 'https://www.aliexpress.com/w/wholesale-esp32-devkit.html', label: Supplier search, partNumber: ESP32 DevKit }
   - id: hx
     label: HX711 amplifier

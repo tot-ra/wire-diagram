@@ -5,6 +5,7 @@ import { barrelJackModel } from './builtin/barrel-jack.js';
 import { ds18b20Model } from './builtin/ds18b20.js';
 import { esp32Model } from './builtin/esp32.js';
 import { hx711Model } from './builtin/hx711.js';
+import { jetsonNanoModel, jetsonOrinNanoModel } from './builtin/jetson.js';
 import { jstConnectorModel } from './builtin/jst-connector.js';
 import { lcd1602Model } from './builtin/lcd1602.js';
 import { lcd2004Model } from './builtin/lcd2004.js';
@@ -38,6 +39,8 @@ export const builtinModels: readonly ModelDefinition[] = [
   raspberryPiModel,
   barrelJackModel,
   jstConnectorModel,
+  jetsonNanoModel,
+  jetsonOrinNanoModel,
   stepperMotorModel,
   stepperDriverModel,
   ledModel,
@@ -159,6 +162,20 @@ export {
 export type { RaspberryPiVariant } from './builtin/raspberry-pi.js';
 export { buildBarrelJack, barrelJackModel } from './builtin/barrel-jack.js';
 export { buildJstConnector, jstConnectorModel, jstPinCount } from './builtin/jst-connector.js';
+export {
+  JETSON_NANO_D_MM,
+  JETSON_NANO_W_MM,
+  JETSON_ORIN_D_MM,
+  JETSON_ORIN_W_MM,
+  JETSON_PCB_MM,
+  buildJetsonNano,
+  buildJetsonOrinNano,
+  jetsonHeaderCenter,
+  jetsonNanoModel,
+  jetsonOrinNanoModel,
+  jetsonPinTipY,
+  resolveJetsonPinPosition,
+} from './builtin/jetson.js';
 export { buildStepperMotor, stepperMotorModel } from './builtin/stepper-motor.js';
 export { buildStepperDriver, stepperDriverModel } from './builtin/stepper-driver.js';
 export {

@@ -1,6 +1,7 @@
+import { resolvePhysicalPinNumber } from '../../pinouts.js';
 import type { Component, Pin, Vec3 } from '../../types.js';
 import { addMesh } from '../helpers.js';
-import { localPinPosition, pinIndexOnSide } from '../layout.js';
+import { localPinPosition } from '../layout.js';
 import {
   addPinHeader,
   createHeaderLook,
@@ -62,6 +63,13 @@ export function esp32PinTipY(): number {
 }
 
 export function resolveEsp32PinPosition(component: Component, pin: Pin, context: PinLayoutContext): Vec3 {
+  const number = resolvePhysicalPinNumber(component, pin);
+  if (number !== undefined) {
+    // J2 runs antenna -> USB; J3 runs back USB -> antenna in unified numbering.
+    const index = number <= 19 ? 19 - number : number - 20;
+    const side = number <= 19 ? 'right' : 'left';
+    return [esp32HeaderPinX(index), esp32PinTipY(), esp32HeaderRowZ(component.dimensions[2], side)];
+  }
   // WHY: DevKit headers sit on the long edges (±Z), not the USB/antenna short edges (±X).
   return [esp32HeaderPinX(context.index), esp32PinTipY(), esp32HeaderRowZ(component.dimensions[2], pin.side)];
 }
@@ -292,8 +300,9 @@ export function buildEsp32(THREE: ThreeModule, component: Component): { group: i
   const usedBySlot = new Map<string, Pin>();
   for (const pin of component.pins) {
     const local = localPinPosition(component, pin);
-    const index = pin.position ? esp32HeaderSlotIndex(local[0]) : pinIndexOnSide(component, pin).index;
-    usedBySlot.set(pinSlotKey(pin.side, index), pin);
+    const index = esp32HeaderSlotIndex(local[0]);
+    const side = local[2] >= 0 ? 'left' : 'right';
+    usedBySlot.set(pinSlotKey(side, index), pin);
   }
 
   const look = createHeaderLook(THREE);

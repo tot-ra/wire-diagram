@@ -10,11 +10,22 @@ groups:
   - { id: displays, label: Displays, color: '#3d8a6e' }
   - { id: sensors, label: Sensor modules, color: '#c47a3a' }
   - { id: sbc, label: Raspberry Pi, color: '#c31c4a' }
+  - { id: jetson, label: NVIDIA Jetson, color: '#76b900' }
   - { id: arduino, label: Arduino, color: '#0a6e74' }
   - { id: connectors, label: Connectors, color: '#7a6b58' }
   - { id: motion, label: Automation, color: '#5a7a4a' }
   - { id: indicators, label: Indicators, color: '#c9a227' }
 components:
+  - id: nano
+    label: Jetson Nano Developer Kit
+    kind: jetson-nano
+    group: jetson
+    pins: [{ id: PIN7 }, { id: PIN6 }, { id: POWER }]
+  - id: orin
+    label: Jetson Orin Nano Developer Kit
+    kind: jetson-orin-nano
+    group: jetson
+    pins: [{ id: GPIO4 }, { id: PIN6 }, { id: POWER }, { id: USB-C }]
   - id: board
     label: Generic board
     kind: board

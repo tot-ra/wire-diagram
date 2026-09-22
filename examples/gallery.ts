@@ -19,6 +19,7 @@ export function isolateComponent(component: Component): Diagram {
         id: component.id,
         label: component.label,
         kind: component.kind,
+        pinout: component.pinout,
         notes: component.notes,
         dimensions: [...component.dimensions],
         // Sit on the ground plane; catalog world coordinates would leave the camera looking at empty space.

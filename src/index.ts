@@ -1,3 +1,4 @@
+import { getPinout, pinDisplayLabel } from './pinouts.js';
 import { parseDiagram } from './parser.js';
 import { createSVGView, renderSVG } from './svg.js';
 import type { ModelDefinition } from './models/types.js';
@@ -6,6 +7,8 @@ import { BUILTIN_MODEL_KINDS } from './types.js';
 import './style.css';
 
 export { parseDiagram, getBom, DiagramParseError } from './parser.js';
+export { getPinout, pinDisplayLabel, resolvePhysicalPinNumber } from './pinouts.js';
+export type { PinoutContact, PinoutDefinition } from './pinouts.js';
 export { renderSVG } from './svg.js';
 export type * from './types.js';
 export { BUILTIN_MODEL_KINDS };
@@ -87,11 +90,16 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
   root.append(toolbar, body, status);
   host.append(root);
 
+  function endpointLabel(ref: string): string {
+    const [componentId, pinId] = ref.split('.');
+    const pin = diagram.components.find(c => c.id === componentId)?.pins.find(p => p.id === pinId);
+    return pin ? `${ref} (${pinDisplayLabel(pin)})` : ref;
+  }
   function entityLabel(id: string): string {
     const component = diagram.components.find(c => c.id === id);
     if (component) return component.label;
     const wire = diagram.wires.find(w => w.id === id);
-    return wire ? `${wire.label || wire.id}: ${wire.from} → ${wire.to}` : id;
+    return wire ? `${wire.label || wire.id}: ${endpointLabel(wire.from)} → ${endpointLabel(wire.to)}` : id;
   }
   function detail(label: string, value: unknown) {
     if (value === undefined) return;
@@ -114,8 +122,10 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
       detail('Size', `${c.dimensions.join(' × ')} mm`);
       if (c.notes) inspector.append(element('p', '', c.notes));
       for (const [key, value] of Object.entries(c.properties ?? {})) detail(key, value);
+      const pinout = getPinout(c);
+      if (pinout) detail('Pinout', `${pinout.id} · GPIO numbering: ${pinout.gpioScheme}`);
       inspector.append(element('h4', '', 'Contacts'));
-      for (const pin of c.pins) detail(pin.label || pin.id, pin.voltage === undefined ? pin.id : `${pin.id} · ${pin.voltage} V`);
+      for (const pin of c.pins) detail(pinDisplayLabel(pin), pin.voltage === undefined ? pin.id : `${pin.id} · ${pin.voltage} V`);
       if (c.purchase) {
         const link = element('a', 'wd-buy', c.purchase.label || 'Find this component ↗');
         link.href = c.purchase.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
@@ -124,7 +134,7 @@ export function createWiringDiagram(host: HTMLElement, source: unknown, options:
     } else if (w) {
       inspector.append(element('h3', '', w.label || w.id));
       const swatch = element('div', 'wd-swatch'); swatch.style.backgroundColor = w.color; inspector.append(swatch);
-      detail('From', w.from); detail('To', w.to);
+      detail('From', endpointLabel(w.from)); detail('To', endpointLabel(w.to));
       detail('Voltage', w.voltage === undefined ? undefined : `${w.voltage} V`);
       detail('Length', w.lengthMm === undefined ? undefined : `${w.lengthMm} mm`);
       if (w.notes) inspector.append(element('p', '', w.notes));

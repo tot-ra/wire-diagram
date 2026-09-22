@@ -18,6 +18,8 @@ export const BUILTIN_MODEL_KINDS = [
   'raspberry-pi',
   'barrel-jack',
   'jst-connector',
+  'jetson-nano',
+  'jetson-orin-nano',
   'stepper-motor',
   'stepper-driver',
   'led',
@@ -28,11 +30,24 @@ export const BUILTIN_MODEL_KINDS = [
 export type BuiltinModelKind = (typeof BUILTIN_MODEL_KINDS)[number];
 /** Built-in kinds plus any kebab-case id a third party registers at runtime. */
 export type ModelKind = BuiltinModelKind | (string & {});
-export interface Pin { id: string; label?: string; side: 'left' | 'right'; position?: Vec3; voltage?: number; }
+export type PinoutId = 'esp32-devkit-38' | 'raspberry-pi-40' | 'raspberry-pi-pico' | 'jetson-nano' | 'jetson-orin-nano';
+export interface Pin {
+  id: string;
+  /** Physical header contact in the selected board pinout, not the GPIO number. */
+  number?: number;
+  /** GPIO identity: SoC GPIO for ESP32/Pico; BCM mode for Pi/Jetson. */
+  gpio?: number;
+  label?: string;
+  /** Schematic layout only; does not move a numbered physical contact. */
+  side: 'left' | 'right';
+  /** Explicit local-mm anchor overrides the model's pinout position. */
+  position?: Vec3;
+  voltage?: number;
+}
 export interface Component {
   id: string; label: string; kind: ModelKind; group?: string; notes?: string;
   dimensions: Vec3; position: Vec3; schematic?: [number, number]; color?: string;
-  pins: Pin[]; properties?: Record<string, string | number | boolean>;
+  pins: Pin[]; pinout?: PinoutId; properties?: Record<string, string | number | boolean>;
   model?: { url: string; scale: number; rotation?: Vec3 };
   purchase?: { url: string; label?: string; partNumber?: string }; quantity: number;
 }

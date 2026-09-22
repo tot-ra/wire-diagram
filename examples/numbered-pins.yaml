@@ -1,0 +1,30 @@
+version: 1
+title: Physical pins and GPIO
+description: Numbered header contacts on ESP32, Raspberry Pi, Jetson Nano and Orin Nano
+notes:
+  - Illustrative signal connections, not a powered assembly specification. Verify board revision, voltage, pinmux and common grounding before wiring.
+  - Jetson GPIO numbers use Jetson.GPIO BCM mode, not Tegra signal names or Linux line offsets.
+components:
+  - id: esp
+    label: ESP32 38-pin DevKit
+    kind: esp32
+    position: [0, 6, 0]
+    pins:
+      - { id: data, gpio: 16, label: Sensor data }
+  - id: pi
+    label: Raspberry Pi 4
+    kind: raspberry-pi
+    properties: { variant: '4' }
+    position: [115, 10, 0]
+  - id: nano
+    label: Jetson Nano
+    kind: jetson-nano
+    position: [0, 10, 120]
+  - id: orin
+    label: Jetson Orin Nano
+    kind: jetson-orin-nano
+    position: [140, 10, 120]
+wires:
+  - { id: esp-pi, from: esp.GPIO16, to: pi.PIN7, color: '#e78924', label: 'ESP GPIO16 to Pi GPIO4' }
+  - { id: pi-nano, from: pi.GPIO17, to: nano.7, color: '#40a0c0', label: 'Pi pin 11 to Nano pin 7' }
+  - { id: nano-orin, from: nano.BCM17, to: orin.GPIO4, color: '#76b900', label: 'Nano pin 11 to Orin pin 7' }
