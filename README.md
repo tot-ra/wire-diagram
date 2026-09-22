@@ -98,7 +98,7 @@ See [format reference](docs/format.md), [decisions](docs/decisions.md).
 - YAML or JavaScript input with schema validation, duplicate/reference checks, safe URLs and bounded YAML aliases.
 - SVG component boxes, explicit contacts, groups, colored/dashed wires, pan/zoom, keyboard selection, SVG export.
 - Orbit/zoom 3D with wire hover/picking, component labels, pin markers, optional external GLB/glTF models, lazy loading and cleanup.
-- Illustrative built-in models for lab boards, Entrance Observer parts, AliExpress-style sensors (`max4466`, `max9814`, `ds18b20`), I2C character LCDs (`lcd1602`, `lcd2004`), Raspberry Pi versions, Arduino UNO R3 (`arduino-uno`), barrel/JST connectors, stepper motor/driver, LEDs, and a generic board. Each lives in `src/models/builtin/`. Third parties can `registerModel` extra kinds or pass `models` into the widget.
+- Illustrative built-in models for lab boards, AliExpress-style sensors (`max4466`, `max9814`, `ds18b20`), I2C character LCDs (`lcd1602`, `lcd2004`), Raspberry Pi versions, Arduino UNO R3 (`arduino-uno`), barrel/JST connectors, stepper motor/driver, LEDs, and a generic board. Each lives in `src/models/builtin/`. Product-specific silhouettes (Jetson, USB camera, HDMI panel, enclosure) are registered by the host with `registerModel` or widget `models`.
 - Inspector appears after selecting a component or wire, with a selection list and purchase links.
 - Multiple independent instances and explicit `update` / `destroy` lifecycle.
 

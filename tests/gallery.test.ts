@@ -16,13 +16,12 @@ describe('showcase gallery', () => {
     expect(sections.every((section) => section.components.length > 0)).toBe(true);
     const displays = sections.find((section) => section.id === 'displays');
     expect(displays?.label).toBe('Displays');
-    expect(displays?.components.map((component) => component.kind)).toEqual(['display', 'lcd1602', 'lcd2004']);
+    expect(displays?.components.map((component) => component.kind)).toEqual(['lcd1602', 'lcd2004']);
     const arduino = sections.find((section) => section.id === 'arduino');
     expect(arduino?.label).toBe('Arduino');
     expect(arduino?.components.map((component) => component.kind)).toEqual(['arduino-uno']);
-    expect(sections.find((section) => section.id === 'frame')?.components.some((component) => component.kind === 'display')).toBe(
-      false,
-    );
+    expect(sections.find((section) => section.id === 'observer')).toBeUndefined();
+    expect(sections.find((section) => section.id === 'frame')).toBeUndefined();
     expect(sections.find((section) => section.id === 'sensors')?.components.some((component) => component.kind === 'lcd1602')).toBe(
       false,
     );

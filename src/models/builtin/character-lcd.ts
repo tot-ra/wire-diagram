@@ -135,7 +135,7 @@ function addWindowFrame(
 
 /**
  * HD44780-style character LCD with a PCF8574 I2C backpack.
- * Lies flat (Y is thickness) with the glass on +Y, unlike the standing HDMI kind: display.
+ * Lies flat (Y is thickness) with the glass on +Y, unlike a standing HDMI panel registered by the host.
  */
 export function createCharacterLcdModel(spec: CharacterLcdSpec): {
   build: (THREE: ThreeModule, component: Component) => { group: import('three').Group; meshes: import('three').Mesh[] };

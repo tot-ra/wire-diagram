@@ -226,7 +226,7 @@ describe('getBom', () => {
   });
 });
 
-it('accepts Entrance Observer product kinds', () => {
+it('accepts product kebab-case kinds that are not library builtins', () => {
   const diagram = parseDiagram({
     version: 1,
     title: 'lab',
@@ -285,7 +285,7 @@ it('rejects kinds that are not lowercase kebab-case', () => {
 it('parses the 3D model gallery demo', () => {
   const source = readFileSync(resolve(import.meta.dirname, '../examples/showcase.yaml'), 'utf8');
   const diagram = parseDiagram(source);
-  expect(diagram.components).toHaveLength(33);
+  expect(diagram.components).toHaveLength(23);
   expect(diagram.components.map((c) => c.kind)).toEqual(
     expect.arrayContaining([
       'max4466',

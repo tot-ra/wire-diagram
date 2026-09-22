@@ -17,7 +17,7 @@ export {
   createHeaderLook,
   headerPinTipY,
 } from './models/parts/pin-header.js';
-export { addMicroUsb, addUsbA, addUsbB, addUsbC } from './models/parts/usb.js';
+export { addMicroUsb, addUsbA, addUsbB, addUsbC, USB_A_SINGLE_MM, USB_C_MM } from './models/parts/usb.js';
 export { localPinPosition } from './models/layout.js';
 export { getRegisteredModel, registerModel, unregisterModel } from './models/registry.js';
 export type { ModelBuildResult, ModelDefinition, PinLayoutContext, ThreeModule } from './models/types.js';
